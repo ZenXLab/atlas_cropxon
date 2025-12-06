@@ -262,14 +262,15 @@ export const Header = ({ onQuoteClick }: HeaderProps) => {
                 </Button>
               </Link>
             )}
-            <Button 
-              variant="default" 
-              size="sm" 
-              onClick={onQuoteClick}
-              className="font-semibold text-sm h-9 px-5 shadow-lg shadow-primary/20 hover:shadow-primary/30 transition-all duration-300"
-            >
-              Get a Quote
-            </Button>
+            <Link to="/get-quote">
+              <Button 
+                variant="default" 
+                size="sm" 
+                className="font-semibold text-sm h-9 px-5 shadow-lg shadow-primary/20 hover:shadow-primary/30 transition-all duration-300"
+              >
+                Get a Quote
+              </Button>
+            </Link>
           </div>
 
           {/* Mobile Menu Button */}
@@ -355,13 +356,14 @@ export const Header = ({ onQuoteClick }: HeaderProps) => {
                     </Button>
                   </Link>
                 )}
-                <Button 
-                  variant="default" 
-                  className="w-full font-semibold" 
-                  onClick={() => { onQuoteClick?.(); setMobileMenuOpen(false); }}
-                >
-                  Get a Quote
-                </Button>
+                <Link to="/get-quote" onClick={() => setMobileMenuOpen(false)}>
+                  <Button 
+                    variant="default" 
+                    className="w-full font-semibold" 
+                  >
+                    Get a Quote
+                  </Button>
+                </Link>
               </div>
             </div>
           </div>
