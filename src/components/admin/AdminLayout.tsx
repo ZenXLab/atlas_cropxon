@@ -100,11 +100,18 @@ const navSections = [
     ]
   },
   {
+    title: "Team",
+    items: [
+      { name: "Team Management", href: "/admin/team", icon: Users },
+    ]
+  },
+  {
     title: "System",
     items: [
       { name: "System Logs", href: "/admin/logs", icon: Activity },
       { name: "Integrations", href: "/admin/integrations", icon: Plug },
       { name: "Portal Settings", href: "/admin/portal-settings", icon: Settings },
+      { name: "Super Admin", href: "/admin/super", icon: Shield },
     ]
   },
 ];

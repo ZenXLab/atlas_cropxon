@@ -1,15 +1,17 @@
 import { useState } from "react";
-import { useQuery } from "@tanstack/react-query";
+import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
-import { FileText, Search, Download, Folder, Image, File } from "lucide-react";
+import { toast } from "sonner";
+import { FileText, Search, Download, Folder, Image, File, Trash2, Eye } from "lucide-react";
 import { format } from "date-fns";
 
 export const AdminFiles = () => {
+  const queryClient = useQueryClient();
   const [searchTerm, setSearchTerm] = useState("");
 
   const { data: files, isLoading } = useQuery({
@@ -29,6 +31,49 @@ export const AdminFiles = () => {
       return data;
     },
   });
+
+  const deleteMutation = useMutation({
+    mutationFn: async (file: any) => {
+      // Delete from storage first
+      await supabase.storage.from("client-files").remove([file.file_path]);
+      // Then delete the database record
+      const { error } = await supabase.from("client_files").delete().eq("id", file.id);
+      if (error) throw error;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["admin-files"] });
+      toast.success("File deleted successfully");
+    },
+    onError: () => toast.error("Failed to delete file"),
+  });
+
+  const downloadFile = async (file: any) => {
+    try {
+      const { data, error } = await supabase.storage.from("client-files").download(file.file_path);
+      if (error) throw error;
+      
+      const url = URL.createObjectURL(data);
+      const a = document.createElement("a");
+      a.href = url;
+      a.download = file.name;
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+      URL.revokeObjectURL(url);
+      toast.success("Download started");
+    } catch (error) {
+      toast.error("Failed to download file");
+    }
+  };
+
+  const previewFile = async (file: any) => {
+    try {
+      const { data } = supabase.storage.from("client-files").getPublicUrl(file.file_path);
+      window.open(data.publicUrl, "_blank");
+    } catch (error) {
+      toast.error("Failed to preview file");
+    }
+  };
 
   const formatFileSize = (bytes: number | null) => {
     if (!bytes) return "-";
@@ -117,7 +162,22 @@ export const AdminFiles = () => {
                     <TableCell>{formatFileSize(file.file_size)}</TableCell>
                     <TableCell className="text-muted-foreground">{format(new Date(file.created_at), "MMM d, yyyy")}</TableCell>
                     <TableCell>
-                      <Button variant="ghost" size="sm"><Download className="h-4 w-4" /></Button>
+                      <div className="flex gap-1">
+                        <Button variant="ghost" size="sm" onClick={() => previewFile(file)}>
+                          <Eye className="h-4 w-4" />
+                        </Button>
+                        <Button variant="ghost" size="sm" onClick={() => downloadFile(file)}>
+                          <Download className="h-4 w-4" />
+                        </Button>
+                        <Button 
+                          variant="ghost" 
+                          size="sm" 
+                          className="text-destructive"
+                          onClick={() => deleteMutation.mutate(file)}
+                        >
+                          <Trash2 className="h-4 w-4" />
+                        </Button>
+                      </div>
                     </TableCell>
                   </TableRow>
                 ))}
