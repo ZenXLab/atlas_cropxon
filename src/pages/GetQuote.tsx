@@ -348,12 +348,12 @@ const GetQuote = () => {
                       </SelectTrigger>
                       <SelectContent>
                         {industryCategories.map((cat) => (
-                          <SelectItem key={cat.id} value={cat.id}>{cat.name}</SelectItem>
+                          <SelectItem key={cat.category} value={cat.category}>{cat.category}</SelectItem>
                         ))}
                       </SelectContent>
                     </Select>
                   </div>
-                  {industryType && industryCategories.find(c => c.id === industryType)?.subcategories && (
+                  {industryType && industryCategories.find(c => c.category === industryType)?.industries && (
                     <div>
                       <Label>Sub-category (Optional)</Label>
                       <Select value={industrySubtype} onValueChange={setIndustrySubtype}>
@@ -361,7 +361,7 @@ const GetQuote = () => {
                           <SelectValue placeholder="Select sub-category" />
                         </SelectTrigger>
                         <SelectContent>
-                          {industryCategories.find(c => c.id === industryType)?.subcategories.map((sub) => (
+                          {industryCategories.find(c => c.category === industryType)?.industries.map((sub) => (
                             <SelectItem key={sub} value={sub}>{sub}</SelectItem>
                           ))}
                         </SelectContent>

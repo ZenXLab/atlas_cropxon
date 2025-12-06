@@ -28,6 +28,9 @@ import { AdminFiles } from "@/components/admin/modules/AdminFiles";
 import { AdminAIDashboard } from "@/components/admin/modules/AdminAIDashboard";
 import { AdminTeamManagement } from "@/components/admin/modules/AdminTeamManagement";
 import { AdminSuperAdmin } from "@/components/admin/modules/AdminSuperAdmin";
+import AdminTenantManagement from "@/components/admin/modules/AdminTenantManagement";
+import AdminPricingManagement from "@/components/admin/modules/AdminPricingManagement";
+import AdminOnboardingTracker from "@/components/admin/modules/AdminOnboardingTracker";
 import { Loader2 } from "lucide-react";
 
 const AdminPage = () => {
@@ -65,7 +68,10 @@ const AdminPage = () => {
     if (path.startsWith("/admin/clickstream")) return <AdminClickstream />;
     if (path.startsWith("/admin/marketing")) return <AdminMarketing />;
     if (path.startsWith("/admin/msp")) return <AdminMSPMonitoring />;
+    if (path.startsWith("/admin/onboarding-tracker")) return <AdminOnboardingTracker />;
     if (path.startsWith("/admin/onboarding")) return <AdminOnboardingApprovals />;
+    if (path.startsWith("/admin/tenants")) return <AdminTenantManagement />;
+    if (path.startsWith("/admin/pricing")) return <AdminPricingManagement />;
     if (path.startsWith("/admin/projects")) return <AdminProjects />;
     if (path.startsWith("/admin/files")) return <AdminFiles />;
     if (path.startsWith("/admin/tickets")) return <AdminTickets />;

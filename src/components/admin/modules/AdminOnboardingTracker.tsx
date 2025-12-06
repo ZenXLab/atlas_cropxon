@@ -13,6 +13,13 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@
 import { toast } from 'sonner';
 import { ClipboardList, Search, RefreshCw, Check, X, User, Building2, Mail, Eye, UserCheck } from 'lucide-react';
 
+interface PricingSnapshot {
+  total?: number;
+  clientTypeMultiplier?: number;
+  industryMultiplier?: number;
+  services?: { service: string; tier: string }[];
+}
+
 interface OnboardingSession {
   id: string;
   client_id: string;
@@ -23,11 +30,11 @@ interface OnboardingSession {
   client_type: string;
   industry_type: string;
   industry_subtype: string | null;
-  selected_services: any[];
-  selected_addons: any[];
+  selected_services: { service: string; tier: string }[] | null;
+  selected_addons: string[] | null;
   current_step: number;
   status: string;
-  pricing_snapshot: any;
+  pricing_snapshot: PricingSnapshot | null;
   dashboard_tier: string;
   assigned_pm: string | null;
   approval_notes: string | null;
@@ -68,7 +75,32 @@ const AdminOnboardingTracker = () => {
         .order('created_at', { ascending: false });
 
       if (error) throw error;
-      setSessions(data || []);
+      
+      // Map the data to match our interface
+      const mappedSessions: OnboardingSession[] = (data || []).map((item) => ({
+        id: item.id,
+        client_id: item.client_id,
+        email: item.email,
+        full_name: item.full_name,
+        phone: item.phone,
+        company_name: item.company_name,
+        client_type: item.client_type,
+        industry_type: item.industry_type,
+        industry_subtype: item.industry_subtype,
+        selected_services: item.selected_services as { service: string; tier: string }[] | null,
+        selected_addons: item.selected_addons as string[] | null,
+        current_step: item.current_step || 1,
+        status: item.status,
+        pricing_snapshot: item.pricing_snapshot as PricingSnapshot | null,
+        dashboard_tier: item.dashboard_tier || 'basic',
+        assigned_pm: item.assigned_pm,
+        approval_notes: item.approval_notes,
+        verified_at: item.verified_at,
+        approved_at: item.approved_at,
+        created_at: item.created_at,
+      }));
+      
+      setSessions(mappedSessions);
     } catch (error) {
       console.error('Error fetching sessions:', error);
       toast.error('Failed to load onboarding sessions');

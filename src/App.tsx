@@ -11,6 +11,7 @@ import Index from "./pages/Index";
 import Auth from "./pages/Auth";
 import Industries from "./pages/Industries";
 import NotFound from "./pages/NotFound";
+import GetQuote from "./pages/GetQuote";
 
 // Portal (Client) pages
 import Portal from "./pages/Portal";
@@ -47,6 +48,7 @@ const App = () => (
             <Route path="/" element={<Index />} />
             <Route path="/auth" element={<Auth />} />
             <Route path="/industries" element={<Industries />} />
+            <Route path="/get-quote" element={<GetQuote />} />
             
             {/* Portal (Client) Routes */}
             <Route path="/portal/login" element={<PortalAuth />} />
