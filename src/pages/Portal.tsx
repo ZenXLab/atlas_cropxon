@@ -12,6 +12,9 @@ import { PortalTickets } from "@/components/portal/PortalTickets";
 import { PortalMeetings } from "@/components/portal/PortalMeetings";
 import { PortalTeam } from "@/components/portal/PortalTeam";
 import { PortalSettings } from "@/components/portal/PortalSettings";
+import { PortalAIDashboard } from "@/components/portal/PortalAIDashboard";
+import { PortalFeedback } from "@/components/portal/PortalFeedback";
+import { PortalResources } from "@/components/portal/PortalResources";
 import { 
   LayoutDashboard, 
   FolderKanban, 
@@ -20,7 +23,6 @@ import {
   HeadphonesIcon, 
   Calendar, 
   Brain, 
-  Shield, 
   Settings, 
   LogOut,
   Menu,
@@ -29,8 +31,7 @@ import {
   Plus,
   Users,
   Star,
-  BookOpen,
-  User
+  BookOpen
 } from "lucide-react";
 import cropxonIcon from "@/assets/cropxon-icon.png";
 import { cn } from "@/lib/utils";
@@ -60,6 +61,12 @@ const sidebarSections = [
     items: [
       { name: "Tickets", href: "/portal/tickets", icon: HeadphonesIcon },
       { name: "Meetings", href: "/portal/meetings", icon: Calendar },
+    ]
+  },
+  {
+    title: "AI & Insights",
+    items: [
+      { name: "AI Dashboard", href: "/portal/ai", icon: Brain },
     ]
   },
   {
@@ -131,6 +138,9 @@ export default function Portal() {
     if (path.startsWith("/portal/meetings")) return <PortalMeetings userId={user?.id} />;
     if (path.startsWith("/portal/team")) return <PortalTeam />;
     if (path.startsWith("/portal/settings")) return <PortalSettings userId={user?.id} profile={profile} />;
+    if (path.startsWith("/portal/ai")) return <PortalAIDashboard userId={user?.id} />;
+    if (path.startsWith("/portal/feedback")) return <PortalFeedback userId={user?.id} />;
+    if (path.startsWith("/portal/resources")) return <PortalResources />;
     
     return (
       <div className="text-center py-12">

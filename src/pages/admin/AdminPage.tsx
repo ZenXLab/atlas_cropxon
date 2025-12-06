@@ -25,6 +25,9 @@ import { AdminProjects } from "@/components/admin/modules/AdminProjects";
 import { AdminTickets } from "@/components/admin/modules/AdminTickets";
 import { AdminMeetings } from "@/components/admin/modules/AdminMeetings";
 import { AdminFiles } from "@/components/admin/modules/AdminFiles";
+import { AdminAIDashboard } from "@/components/admin/modules/AdminAIDashboard";
+import { AdminTeamManagement } from "@/components/admin/modules/AdminTeamManagement";
+import { AdminSuperAdmin } from "@/components/admin/modules/AdminSuperAdmin";
 import { Loader2 } from "lucide-react";
 
 const AdminPage = () => {
@@ -78,6 +81,9 @@ const AdminPage = () => {
     if (path.startsWith("/admin/logs")) return <AdminSystemLogs />;
     if (path.startsWith("/admin/integrations")) return <AdminIntegrations />;
     if (path.startsWith("/admin/portal-settings")) return <AdminPortalSettings />;
+    if (path.startsWith("/admin/ai")) return <AdminAIDashboard />;
+    if (path.startsWith("/admin/team")) return <AdminTeamManagement />;
+    if (path.startsWith("/admin/super")) return <AdminSuperAdmin />;
     if (path.startsWith("/admin/settings")) return <AdminSettings />;
     
     return <AdminOverview />;
