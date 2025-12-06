@@ -1,9 +1,13 @@
 import { useState } from "react";
-import { Menu, X, ChevronDown } from "lucide-react";
+import { Menu, X, ChevronDown, User } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Link } from "react-router-dom";
-import cropxonLogo from "@/assets/cropxon-logo.png";
 import cropxonIcon from "@/assets/cropxon-icon.png";
+import { useAuth } from "@/hooks/useAuth";
+
+interface HeaderProps {
+  onQuoteClick?: () => void;
+}
 
 const services = [
   { name: "Digital Engineering", href: "/services/digital-engineering" },
@@ -14,12 +18,6 @@ const services = [
   { name: "Managed IT (MSP)", href: "/services/managed-it" },
   { name: "Cybersecurity", href: "/services/cybersecurity" },
   { name: "Industry Solutions", href: "/services/industry-solutions" },
-];
-
-const industries = [
-  "Retail", "FoodTech", "Healthcare", "Education", "Agriculture", 
-  "Logistics", "Hospitality", "Real Estate", "Airlines", "Finance",
-  "Influencers", "Marketing", "Ad Agencies"
 ];
 
 const resources = [
@@ -34,9 +32,10 @@ const company = [
   { name: "Careers", href: "#" },
 ];
 
-export const Header = () => {
+export const Header = ({ onQuoteClick }: HeaderProps) => {
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const [activeDropdown, setActiveDropdown] = useState<string | null>(null);
+  const { user, signOut } = useAuth();
 
   return (
     <header className="fixed top-0 left-0 right-0 z-50 bg-card/95 backdrop-blur-xl border-b border-border/50">
@@ -96,31 +95,10 @@ export const Header = () => {
               )}
             </div>
 
-            {/* Industries Dropdown */}
-            <div 
-              className="relative"
-              onMouseEnter={() => setActiveDropdown("industries")}
-              onMouseLeave={() => setActiveDropdown(null)}
-            >
-              <button className="flex items-center gap-1 px-4 py-2 text-foreground/80 hover:text-foreground transition-colors font-medium">
-                Industries <ChevronDown className="h-4 w-4" />
-              </button>
-              {activeDropdown === "industries" && (
-                <div className="absolute top-full left-0 w-80 bg-card border border-border rounded-xl shadow-card p-4 animate-fade-in-up">
-                  <div className="grid grid-cols-2 gap-1">
-                    {industries.map((industry) => (
-                      <a
-                        key={industry}
-                        href="#industries"
-                        className="block px-3 py-2 text-foreground/70 hover:text-accent hover:bg-muted/50 rounded-lg transition-colors text-sm"
-                      >
-                        {industry}
-                      </a>
-                    ))}
-                  </div>
-                </div>
-              )}
-            </div>
+            {/* Industries Link */}
+            <Link to="/industries" className="px-4 py-2 text-foreground/80 hover:text-foreground transition-colors font-medium">
+              Industries
+            </Link>
 
             <a href="/#pricing" className="px-4 py-2 text-foreground/80 hover:text-foreground transition-colors font-medium">
               Pricing
@@ -175,10 +153,27 @@ export const Header = () => {
             </div>
           </div>
 
-          {/* CTA Button */}
-          <div className="hidden lg:flex items-center gap-4">
-            <Button variant="hero" size="lg">
-              Book a Consultation
+          {/* CTA Buttons */}
+          <div className="hidden lg:flex items-center gap-3">
+            {user ? (
+              <>
+                <span className="text-sm text-muted-foreground">
+                  {user.email}
+                </span>
+                <Button variant="outline" size="sm" onClick={signOut}>
+                  Sign Out
+                </Button>
+              </>
+            ) : (
+              <Link to="/auth">
+                <Button variant="outline" size="sm" className="gap-2">
+                  <User className="h-4 w-4" />
+                  Sign In
+                </Button>
+              </Link>
+            )}
+            <Button variant="hero" size="lg" onClick={onQuoteClick}>
+              Get a Quote
             </Button>
           </div>
 
@@ -215,10 +210,26 @@ export const Header = () => {
                 </Link>
               ))}
               
+              <Link to="/industries" className="px-4 py-3 text-foreground hover:bg-muted/50 rounded-lg" onClick={() => setMobileMenuOpen(false)}>
+                Industries
+              </Link>
+              
               <a href="/#pricing" className="px-4 py-3 text-foreground hover:bg-muted/50 rounded-lg" onClick={() => setMobileMenuOpen(false)}>
                 Pricing
               </a>
-              <Button variant="hero" className="mt-4">Book a Consultation</Button>
+
+              {user ? (
+                <Button variant="outline" className="mt-4" onClick={() => { signOut(); setMobileMenuOpen(false); }}>
+                  Sign Out
+                </Button>
+              ) : (
+                <Link to="/auth" onClick={() => setMobileMenuOpen(false)}>
+                  <Button variant="outline" className="mt-4 w-full">Sign In</Button>
+                </Link>
+              )}
+              <Button variant="hero" className="mt-2" onClick={() => { onQuoteClick?.(); setMobileMenuOpen(false); }}>
+                Get a Quote
+              </Button>
             </div>
           </div>
         )}
