@@ -1,6 +1,6 @@
 import { useState, useEffect } from "react";
 import { supabase } from "@/integrations/supabase/client";
-import { useAuth } from "./useAuth";
+import { useAuth, DEV_MODE_KEY, DEV_MODE_TYPE_KEY } from "./useAuth";
 
 export const useUserRole = () => {
   const { user } = useAuth();
@@ -9,8 +9,25 @@ export const useUserRole = () => {
 
   useEffect(() => {
     const checkAdminRole = async () => {
+      // Check for dev mode first
+      const devMode = localStorage.getItem(DEV_MODE_KEY) === "true";
+      const devType = localStorage.getItem(DEV_MODE_TYPE_KEY);
+      
+      if (devMode && devType === "admin") {
+        setIsAdmin(true);
+        setLoading(false);
+        return;
+      }
+
       if (!user) {
         setIsAdmin(false);
+        setLoading(false);
+        return;
+      }
+
+      // Skip DB check for dev mode users
+      if (user.id.startsWith("dev-")) {
+        setIsAdmin(devType === "admin");
         setLoading(false);
         return;
       }

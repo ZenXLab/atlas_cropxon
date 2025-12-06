@@ -9,6 +9,7 @@ import { NetworkBackground } from "@/components/NetworkBackground";
 import cropxonIcon from "@/assets/cropxon-icon.png";
 import { Eye, EyeOff, Mail, Lock, ArrowLeft, Loader2, SkipForward } from "lucide-react";
 import { z } from "zod";
+import { useAuth } from "@/hooks/useAuth";
 
 const loginSchema = z.object({
   email: z.string().email("Please enter a valid email address"),
@@ -23,10 +24,12 @@ const PortalAuth = () => {
     password: "",
   });
   const navigate = useNavigate();
+  const { enableDevMode } = useAuth();
 
   // Skip login for development/testing
   const handleSkipLogin = () => {
-    toast.success("Development mode: Bypassing authentication");
+    enableDevMode("client");
+    toast.success("Development mode: Client portal access enabled");
     navigate("/portal");
   };
 

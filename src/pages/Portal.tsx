@@ -1,9 +1,11 @@
 import { useState, useEffect } from "react";
 import { useNavigate, Link, useLocation } from "react-router-dom";
 import { useAuth } from "@/hooks/useAuth";
+import { useClientTier } from "@/hooks/useClientTier";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
 import { ScrollArea } from "@/components/ui/scroll-area";
+import { Badge } from "@/components/ui/badge";
 import { PortalDashboard } from "@/components/portal/PortalDashboard";
 import { PortalProjects } from "@/components/portal/PortalProjects";
 import { PortalFiles } from "@/components/portal/PortalFiles";
@@ -33,64 +35,38 @@ import {
   Users,
   Star,
   BookOpen,
-  Server
+  Server,
+  Crown
 } from "lucide-react";
 import cropxonIcon from "@/assets/cropxon-icon.png";
 import { cn } from "@/lib/utils";
 
-const sidebarSections = [
-  {
-    title: "Overview",
-    items: [
-      { name: "Dashboard", href: "/portal", icon: LayoutDashboard },
-    ]
-  },
-  {
-    title: "Work",
-    items: [
-      { name: "Projects", href: "/portal/projects", icon: FolderKanban },
-      { name: "Files", href: "/portal/files", icon: FileText },
-    ]
-  },
-  {
-    title: "Billing",
-    items: [
-      { name: "Invoices", href: "/portal/invoices", icon: Receipt },
-    ]
-  },
-  {
-    title: "Support",
-    items: [
-      { name: "Tickets", href: "/portal/tickets", icon: HeadphonesIcon },
-      { name: "Meetings", href: "/portal/meetings", icon: Calendar },
-    ]
-  },
-  {
-    title: "AI & Monitoring",
-    items: [
-      { name: "AI Dashboard", href: "/portal/ai", icon: Brain },
-      { name: "MSP Monitoring", href: "/portal/msp", icon: Server },
-    ]
-  },
-  {
-    title: "More",
-    items: [
-      { name: "Team", href: "/portal/team", icon: Users },
-      { name: "Feedback", href: "/portal/feedback", icon: Star },
-      { name: "Resources", href: "/portal/resources", icon: BookOpen },
-    ]
-  },
-  {
-    title: "Account",
-    items: [
-      { name: "Settings", href: "/portal/settings", icon: Settings },
-    ]
-  },
+const allSidebarItems = [
+  { name: "Dashboard", href: "/portal", icon: LayoutDashboard, section: "Overview" },
+  { name: "Projects", href: "/portal/projects", icon: FolderKanban, section: "Work" },
+  { name: "Files", href: "/portal/files", icon: FileText, section: "Work" },
+  { name: "Invoices", href: "/portal/invoices", icon: Receipt, section: "Billing" },
+  { name: "Tickets", href: "/portal/tickets", icon: HeadphonesIcon, section: "Support" },
+  { name: "Meetings", href: "/portal/meetings", icon: Calendar, section: "Support" },
+  { name: "AI Dashboard", href: "/portal/ai", icon: Brain, section: "AI & Monitoring" },
+  { name: "MSP Monitoring", href: "/portal/msp", icon: Server, section: "AI & Monitoring" },
+  { name: "Team", href: "/portal/team", icon: Users, section: "More" },
+  { name: "Feedback", href: "/portal/feedback", icon: Star, section: "More" },
+  { name: "Resources", href: "/portal/resources", icon: BookOpen, section: "More" },
+  { name: "Settings", href: "/portal/settings", icon: Settings, section: "Account" },
 ];
+
+const tierColors: Record<string, string> = {
+  basic: "bg-gray-500/10 text-gray-600",
+  standard: "bg-blue-500/10 text-blue-600",
+  advanced: "bg-purple-500/10 text-purple-600",
+  enterprise: "bg-amber-500/10 text-amber-600",
+};
 
 export default function Portal() {
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const { user, loading, signOut } = useAuth();
+  const { tier, isModuleAllowed, loading: tierLoading } = useClientTier();
   const navigate = useNavigate();
   const location = useLocation();
   const [profile, setProfile] = useState<any>(null);
@@ -102,7 +78,7 @@ export default function Portal() {
   }, [user, loading, navigate]);
 
   useEffect(() => {
-    if (user) {
+    if (user && !user.id.startsWith("dev-")) {
       fetchProfile();
     }
   }, [user]);
@@ -117,13 +93,28 @@ export default function Portal() {
     setProfile(data);
   };
 
-  if (loading) {
+  if (loading || tierLoading) {
     return (
       <div className="min-h-screen bg-background flex items-center justify-center">
         <div className="w-8 h-8 border-2 border-primary border-t-transparent rounded-full animate-spin" />
       </div>
     );
   }
+
+  // Filter sidebar items based on client tier
+  const filteredItems = allSidebarItems.filter(item => isModuleAllowed(item.name));
+  
+  // Group filtered items by section
+  const sidebarSections = filteredItems.reduce((acc, item) => {
+    const section = acc.find(s => s.title === item.section);
+    if (section) {
+      section.items.push(item);
+    } else {
+      acc.push({ title: item.section, items: [item] });
+    }
+    return acc;
+  }, [] as { title: string; items: typeof allSidebarItems }[]);
+
 
   const isActive = (path: string) => {
     if (path === "/portal") return location.pathname === "/portal";
@@ -177,6 +168,12 @@ export default function Portal() {
                 <span className="text-primary font-heading font-semibold text-xs">ATLAS Portal</span>
               </div>
             </Link>
+            <div className="mt-3 flex items-center gap-2">
+              <Crown className="w-3.5 h-3.5 text-amber-500" />
+              <Badge className={cn("text-xs capitalize", tierColors[tier])}>
+                {tier} Plan
+              </Badge>
+            </div>
           </div>
 
           <ScrollArea className="flex-1">
