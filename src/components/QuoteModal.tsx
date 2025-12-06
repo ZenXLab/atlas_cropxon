@@ -127,9 +127,45 @@ export const QuoteModal = ({ open, onOpenChange }: QuoteModalProps) => {
       const validated = contactSchema.parse(contactData);
       
       const estimatedPrice = calculatePrice();
+      const discountApplied = quoteData.couponCode.toLowerCase() === "atlas10";
       
-      // For now, we'll just show success - once DB is ready, this will save to quotes table
-      toast.success("Quote request submitted! We'll contact you within 24 hours.");
+      // Generate quote number using database function
+      const { data: quoteNumberData, error: quoteNumberError } = await supabase
+        .rpc('generate_quote_number');
+      
+      if (quoteNumberError) {
+        console.error('Error generating quote number:', quoteNumberError);
+        throw new Error('Failed to generate quote number');
+      }
+
+      // Insert quote into database
+      const { error: insertError } = await supabase
+        .from('quotes')
+        .insert({
+          quote_number: quoteNumberData,
+          user_id: user?.id || null,
+          client_type: quoteData.clientType,
+          service_type: quoteData.serviceType,
+          complexity: quoteData.complexity,
+          addons: quoteData.selectedAddons,
+          estimated_price: estimatedPrice,
+          coupon_code: quoteData.couponCode || null,
+          discount_percent: discountApplied ? 10 : 0,
+          final_price: estimatedPrice,
+          contact_name: validated.name,
+          contact_email: validated.email,
+          contact_phone: contactData.phone || null,
+          contact_company: contactData.company || null,
+          notes: contactData.message || null,
+          status: 'pending',
+        });
+
+      if (insertError) {
+        console.error('Error saving quote:', insertError);
+        throw new Error('Failed to save quote');
+      }
+      
+      toast.success(`Quote ${quoteNumberData} submitted! We'll contact you within 24 hours.`);
       onOpenChange(false);
       setStep(1);
       setQuoteData({
@@ -151,6 +187,7 @@ export const QuoteModal = ({ open, onOpenChange }: QuoteModalProps) => {
         toast.error(error.errors[0].message);
       } else {
         toast.error("Something went wrong. Please try again.");
+        console.error('Quote submission error:', error);
       }
     } finally {
       setLoading(false);

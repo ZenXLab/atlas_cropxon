@@ -14,16 +14,237 @@ export type Database = {
   }
   public: {
     Tables: {
-      [_ in never]: never
+      inquiries: {
+        Row: {
+          company: string | null
+          created_at: string | null
+          email: string
+          id: string
+          message: string | null
+          name: string
+          phone: string | null
+          service_interest: string | null
+          source: string | null
+          user_id: string | null
+        }
+        Insert: {
+          company?: string | null
+          created_at?: string | null
+          email: string
+          id?: string
+          message?: string | null
+          name: string
+          phone?: string | null
+          service_interest?: string | null
+          source?: string | null
+          user_id?: string | null
+        }
+        Update: {
+          company?: string | null
+          created_at?: string | null
+          email?: string
+          id?: string
+          message?: string | null
+          name?: string
+          phone?: string | null
+          service_interest?: string | null
+          source?: string | null
+          user_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "inquiries_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      invoices: {
+        Row: {
+          amount: number
+          created_at: string | null
+          due_date: string | null
+          id: string
+          invoice_number: string
+          notes: string | null
+          paid_at: string | null
+          quote_id: string | null
+          status: Database["public"]["Enums"]["invoice_status"] | null
+          tax_amount: number
+          tax_percent: number | null
+          total_amount: number
+          updated_at: string | null
+          user_id: string | null
+        }
+        Insert: {
+          amount: number
+          created_at?: string | null
+          due_date?: string | null
+          id?: string
+          invoice_number: string
+          notes?: string | null
+          paid_at?: string | null
+          quote_id?: string | null
+          status?: Database["public"]["Enums"]["invoice_status"] | null
+          tax_amount: number
+          tax_percent?: number | null
+          total_amount: number
+          updated_at?: string | null
+          user_id?: string | null
+        }
+        Update: {
+          amount?: number
+          created_at?: string | null
+          due_date?: string | null
+          id?: string
+          invoice_number?: string
+          notes?: string | null
+          paid_at?: string | null
+          quote_id?: string | null
+          status?: Database["public"]["Enums"]["invoice_status"] | null
+          tax_amount?: number
+          tax_percent?: number | null
+          total_amount?: number
+          updated_at?: string | null
+          user_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "invoices_quote_id_fkey"
+            columns: ["quote_id"]
+            isOneToOne: false
+            referencedRelation: "quotes"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "invoices_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      profiles: {
+        Row: {
+          company_name: string | null
+          created_at: string | null
+          email: string
+          full_name: string | null
+          id: string
+          phone: string | null
+          updated_at: string | null
+        }
+        Insert: {
+          company_name?: string | null
+          created_at?: string | null
+          email: string
+          full_name?: string | null
+          id: string
+          phone?: string | null
+          updated_at?: string | null
+        }
+        Update: {
+          company_name?: string | null
+          created_at?: string | null
+          email?: string
+          full_name?: string | null
+          id?: string
+          phone?: string | null
+          updated_at?: string | null
+        }
+        Relationships: []
+      }
+      quotes: {
+        Row: {
+          addons: Json | null
+          client_type: string
+          complexity: string
+          contact_company: string | null
+          contact_email: string | null
+          contact_name: string | null
+          contact_phone: string | null
+          coupon_code: string | null
+          created_at: string | null
+          discount_percent: number | null
+          estimated_price: number
+          features: Json | null
+          final_price: number
+          id: string
+          notes: string | null
+          quote_number: string
+          service_type: string
+          status: Database["public"]["Enums"]["quote_status"] | null
+          updated_at: string | null
+          user_id: string | null
+        }
+        Insert: {
+          addons?: Json | null
+          client_type: string
+          complexity: string
+          contact_company?: string | null
+          contact_email?: string | null
+          contact_name?: string | null
+          contact_phone?: string | null
+          coupon_code?: string | null
+          created_at?: string | null
+          discount_percent?: number | null
+          estimated_price: number
+          features?: Json | null
+          final_price: number
+          id?: string
+          notes?: string | null
+          quote_number: string
+          service_type: string
+          status?: Database["public"]["Enums"]["quote_status"] | null
+          updated_at?: string | null
+          user_id?: string | null
+        }
+        Update: {
+          addons?: Json | null
+          client_type?: string
+          complexity?: string
+          contact_company?: string | null
+          contact_email?: string | null
+          contact_name?: string | null
+          contact_phone?: string | null
+          coupon_code?: string | null
+          created_at?: string | null
+          discount_percent?: number | null
+          estimated_price?: number
+          features?: Json | null
+          final_price?: number
+          id?: string
+          notes?: string | null
+          quote_number?: string
+          service_type?: string
+          status?: Database["public"]["Enums"]["quote_status"] | null
+          updated_at?: string | null
+          user_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "quotes_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
     }
     Views: {
       [_ in never]: never
     }
     Functions: {
-      [_ in never]: never
+      generate_invoice_number: { Args: never; Returns: string }
+      generate_quote_number: { Args: never; Returns: string }
     }
     Enums: {
-      [_ in never]: never
+      invoice_status: "draft" | "sent" | "paid" | "overdue" | "cancelled"
+      quote_status: "draft" | "pending" | "approved" | "rejected" | "converted"
     }
     CompositeTypes: {
       [_ in never]: never
@@ -150,6 +371,9 @@ export type CompositeTypes<
 
 export const Constants = {
   public: {
-    Enums: {},
+    Enums: {
+      invoice_status: ["draft", "sent", "paid", "overdue", "cancelled"],
+      quote_status: ["draft", "pending", "approved", "rejected", "converted"],
+    },
   },
 } as const
