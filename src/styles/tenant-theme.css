@@ -1,0 +1,138 @@
+/* ATLAS Tenant Super-Admin Portal Theme */
+/* Neutral, professional enterprise design system */
+
+:root {
+  /* Tenant Portal Design Tokens */
+  --tenant-primary: 217 91% 46%; /* #005EEB */
+  --tenant-secondary: 220 62% 15%; /* #0F1E3A */
+  --tenant-accent: 193 100% 50%; /* #00C2FF */
+  --tenant-success: 158 85% 37%; /* #0FB07A */
+  --tenant-warning: 38 100% 56%; /* #FFB020 */
+  --tenant-danger: 351 73% 56%; /* #E23E57 */
+  --tenant-background: 220 27% 98%; /* #F7F9FC */
+  --tenant-surface: 0 0% 100%; /* #FFFFFF */
+  --tenant-muted: 220 9% 46%; /* #6B7280 */
+  
+  /* Layout dimensions */
+  --header-height: 72px;
+  --sidebar-width: 280px;
+  --sidebar-collapsed: 72px;
+  --content-padding: 24px;
+  --widget-radius: 12px;
+  --widget-shadow: 0 6px 18px rgba(16,24,40,0.06);
+  
+  /* Widget sizes */
+  --widget-compact: 160px;
+  --widget-medium: 280px;
+  --widget-large: 520px;
+}
+
+/* Tenant portal specific overrides */
+.tenant-portal {
+  --background: var(--tenant-background);
+  --foreground: var(--tenant-secondary);
+  --primary: var(--tenant-primary);
+  --accent: var(--tenant-accent);
+  --muted-foreground: var(--tenant-muted);
+  font-family: "Inter", system-ui, -apple-system, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+}
+
+/* Animations for widgets */
+@keyframes counter-up {
+  from { opacity: 0; transform: translateY(10px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+@keyframes pulse-attention {
+  0%, 100% { box-shadow: 0 0 0 0 rgba(225, 62, 87, 0.4); }
+  50% { box-shadow: 0 0 0 8px rgba(225, 62, 87, 0); }
+}
+
+@keyframes slide-in-panel {
+  from { transform: translateX(100%); opacity: 0; }
+  to { transform: translateX(0); opacity: 1; }
+}
+
+@keyframes fade-up {
+  from { opacity: 0; transform: translateY(20px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+.animate-counter {
+  animation: counter-up 0.5s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+}
+
+.animate-pulse-attention {
+  animation: pulse-attention 2s infinite;
+}
+
+.animate-slide-panel {
+  animation: slide-in-panel 0.3s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+}
+
+.animate-fade-up {
+  animation: fade-up 0.4s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+}
+
+/* Widget grid system */
+.widget-grid {
+  display: grid;
+  gap: 20px;
+  grid-template-columns: repeat(3, 1fr);
+}
+
+@media (max-width: 1199px) {
+  .widget-grid {
+    grid-template-columns: repeat(2, 1fr);
+  }
+}
+
+@media (max-width: 767px) {
+  .widget-grid {
+    grid-template-columns: 1fr;
+  }
+}
+
+/* Widget hover states */
+.widget-card {
+  transition: all 0.3s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+.widget-card:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 12px 32px rgba(16,24,40,0.1);
+}
+
+/* Trial mode watermark */
+.trial-watermark {
+  position: absolute;
+  top: 8px;
+  right: 8px;
+  font-size: 10px;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  color: hsl(var(--tenant-warning));
+  background: hsl(var(--tenant-warning) / 0.1);
+  padding: 2px 6px;
+  border-radius: 4px;
+}
+
+/* Scrollbar styling */
+.tenant-portal ::-webkit-scrollbar {
+  width: 6px;
+  height: 6px;
+}
+
+.tenant-portal ::-webkit-scrollbar-track {
+  background: hsl(var(--tenant-background));
+}
+
+.tenant-portal ::-webkit-scrollbar-thumb {
+  background: hsl(var(--tenant-muted) / 0.3);
+  border-radius: 3px;
+}
+
+.tenant-portal ::-webkit-scrollbar-thumb:hover {
+  background: hsl(var(--tenant-muted) / 0.5);
+}
