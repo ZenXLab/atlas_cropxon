@@ -2,9 +2,11 @@ import { useState } from "react";
 import { Helmet } from "react-helmet-async";
 import { Header } from "@/components/Header";
 import { HeroSection } from "@/components/HeroSection";
+import { StatsSection } from "@/components/StatsSection";
 import { AboutSection } from "@/components/AboutSection";
 import { PillarsSection } from "@/components/PillarsSection";
 import { WhyChooseSection } from "@/components/WhyChooseSection";
+import { ComparisonTable } from "@/components/ComparisonTable";
 import { PricingCalculator } from "@/components/PricingCalculator";
 import { TestimonialsSection } from "@/components/TestimonialsSection";
 import { Footer } from "@/components/Footer";
@@ -80,6 +82,10 @@ const Index = () => {
         <article>
           <HeroSection onQuoteClick={() => setQuoteModalOpen(true)} />
           
+          <section aria-labelledby="stats-heading">
+            <StatsSection />
+          </section>
+          
           <section aria-labelledby="about-heading">
             <AboutSection />
           </section>
@@ -90,6 +96,10 @@ const Index = () => {
           
           <section aria-labelledby="why-choose-heading">
             <WhyChooseSection />
+          </section>
+          
+          <section aria-labelledby="comparison-heading">
+            <ComparisonTable />
           </section>
           
           <section id="pricing" aria-labelledby="pricing-heading">

@@ -5,27 +5,15 @@ import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { BrowserRouter, Routes, Route } from "react-router-dom";
 import { HelmetProvider } from "react-helmet-async";
 import { ClickstreamTracker } from "@/components/ClickstreamTracker";
-
-// Public pages
 import Index from "./pages/Index";
-import Auth from "./pages/Auth";
-import Industries from "./pages/Industries";
 import Features from "./pages/Features";
-import NotFound from "./pages/NotFound";
+import ModuleDetail from "./pages/modules/ModuleDetail";
+import Industries from "./pages/Industries";
 import GetQuote from "./pages/GetQuote";
-
-// Client Portal pages
-import Portal from "./pages/Portal";
-import PortalAuth from "./pages/portal/PortalAuth";
+import Auth from "./pages/Auth";
 import Onboarding from "./pages/Onboarding";
-
-// Admin pages
-import AdminAuth from "./pages/admin/AdminAuth";
-import AdminPage from "./pages/admin/AdminPage";
-
-// Tenant Super-Admin Portal
-import TenantPortal from "./pages/tenant/TenantPortal";
-import TenantAuth from "./pages/tenant/TenantAuth";
+import Portal from "./pages/Portal";
+import NotFound from "./pages/NotFound";
 
 // Service pages
 import DigitalEngineering from "./pages/services/DigitalEngineering";
@@ -36,6 +24,17 @@ import EnterpriseConsulting from "./pages/services/EnterpriseConsulting";
 import ManagedIT from "./pages/services/ManagedIT";
 import Cybersecurity from "./pages/services/Cybersecurity";
 import IndustrySolutions from "./pages/services/IndustrySolutions";
+
+// Admin pages
+import AdminAuth from "./pages/admin/AdminAuth";
+import AdminPage from "./pages/admin/AdminPage";
+
+// Portal pages
+import PortalAuth from "./pages/portal/PortalAuth";
+
+// Tenant pages
+import TenantAuth from "./pages/tenant/TenantAuth";
+import TenantPortal from "./pages/tenant/TenantPortal";
 
 const queryClient = new QueryClient();
 
@@ -48,13 +47,45 @@ const App = () => (
         <BrowserRouter>
           <ClickstreamTracker />
           <Routes>
-            {/* Public Routes */}
             <Route path="/" element={<Index />} />
-            <Route path="/auth" element={<Auth />} />
-            <Route path="/industries" element={<Industries />} />
             <Route path="/features" element={<Features />} />
+            <Route path="/modules/:slug" element={<ModuleDetail />} />
+            <Route path="/industries" element={<Industries />} />
             <Route path="/get-quote" element={<GetQuote />} />
+            <Route path="/auth" element={<Auth />} />
+            <Route path="/onboarding" element={<Onboarding />} />
+            <Route path="/portal/*" element={<Portal />} />
             
+            {/* Service pages */}
+            <Route path="/services/digital-engineering" element={<DigitalEngineering />} />
+            <Route path="/services/ai-automation" element={<AIAutomation />} />
+            <Route path="/services/experience-design" element={<ExperienceDesign />} />
+            <Route path="/services/cloud-devops" element={<CloudDevOps />} />
+            <Route path="/services/enterprise-consulting" element={<EnterpriseConsulting />} />
+            <Route path="/services/managed-it" element={<ManagedIT />} />
+            <Route path="/services/cybersecurity" element={<Cybersecurity />} />
+            <Route path="/services/industry-solutions" element={<IndustrySolutions />} />
+            
+            {/* Admin routes */}
+            <Route path="/admin/login" element={<AdminAuth />} />
+            <Route path="/admin/*" element={<AdminPage />} />
+            
+            {/* Portal auth */}
+            <Route path="/portal/login" element={<PortalAuth />} />
+            
+            {/* Tenant routes */}
+            <Route path="/tenant/login" element={<TenantAuth />} />
+            <Route path="/tenant/*" element={<TenantPortal />} />
+            
+            <Route path="*" element={<NotFound />} />
+          </Routes>
+        </BrowserRouter>
+      </TooltipProvider>
+    </HelmetProvider>
+  </QueryClientProvider>
+);
+
+export default App;
             {/* Client Portal Routes */}
             <Route path="/portal/login" element={<PortalAuth />} />
             <Route path="/portal/*" element={<Portal />} />
