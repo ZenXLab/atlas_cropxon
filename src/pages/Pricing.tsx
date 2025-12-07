@@ -8,10 +8,29 @@ import { PricingFAQ } from "@/components/pricing/PricingFAQ";
 import { ExitIntentPopup } from "@/components/pricing/ExitIntentPopup";
 import { BusinessTypeMatcher } from "@/components/pricing/BusinessTypeMatcher";
 import { PricingVsQuoteComparison } from "@/components/pricing/PricingVsQuoteComparison";
+import { useABTest } from "@/hooks/useABTest";
+import { useClickstream } from "@/hooks/useClickstream";
 
 const Pricing = () => {
   const [showExitPopup, setShowExitPopup] = useState(false);
   const hasShownExitPopup = useRef(false);
+  
+  // A/B Testing integration - tracks which pricing variant users see
+  const abTestResult = useABTest({ experimentName: "pricing-page-layout" });
+  
+  // Clickstream tracking for real-time analytics
+  const { trackEvent } = useClickstream();
+
+  // Track page view with A/B variant info
+  useEffect(() => {
+    if (abTestResult) {
+      trackEvent("ab_variant_view", { 
+        experiment: "pricing-page-layout",
+        variant: abTestResult.variantName,
+        variantId: abTestResult.variantId
+      });
+    }
+  }, [abTestResult, trackEvent]);
 
   // Exit intent detection
   useEffect(() => {
@@ -20,12 +39,13 @@ const Pricing = () => {
       if (e.clientY <= 0 && !hasShownExitPopup.current) {
         hasShownExitPopup.current = true;
         setShowExitPopup(true);
+        trackEvent("exit_intent_triggered", { page: "pricing" });
       }
     };
 
     document.addEventListener("mouseleave", handleMouseLeave);
     return () => document.removeEventListener("mouseleave", handleMouseLeave);
-  }, []);
+  }, [trackEvent]);
 
   return (
     <>
@@ -145,7 +165,11 @@ const Pricing = () => {
           {/* Lead Capture */}
           <section className="py-16 bg-background">
             <div className="container mx-auto px-4">
-              <PricingLeadCapture />
+              <PricingLeadCapture 
+                onConversion={() => abTestResult?.trackConversion(1)}
+                trackEvent={trackEvent}
+                variant={abTestResult ? { id: abTestResult.variantId, name: abTestResult.variantName } : null}
+              />
             </div>
           </section>
 
