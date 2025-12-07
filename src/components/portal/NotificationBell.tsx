@@ -11,6 +11,8 @@ import { Badge } from "@/components/ui/badge";
 import { cn } from "@/lib/utils";
 import { useNotifications, Notification } from "@/hooks/useNotifications";
 import { useNavigate } from "react-router-dom";
+
+const getNotificationIcon = (type: Notification["type"]) => {
   switch (type) {
     case "feature_unlock":
       return <Sparkles className="w-4 h-4 text-violet-500" />;
@@ -54,6 +56,7 @@ interface NotificationBellProps {
 
 export const NotificationBell = ({ userId }: NotificationBellProps) => {
   const navigate = useNavigate();
+  const [open, setOpen] = useState(false);
   const {
     notifications,
     loading,
@@ -63,8 +66,6 @@ export const NotificationBell = ({ userId }: NotificationBellProps) => {
     deleteNotification,
     refresh,
   } = useNotifications({ userId });
-  
-  const [open, setOpen] = useState(false);
 
   return (
     <Popover open={open} onOpenChange={setOpen}>
