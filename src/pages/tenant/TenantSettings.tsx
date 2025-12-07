@@ -1,5 +1,6 @@
 import React from "react";
-import { Building2, Users, Globe, CreditCard, Key, Database, Shield, Bell, Palette, Link2, Save } from "lucide-react";
+import { useNavigate } from "react-router-dom";
+import { Building2, Users, Globe, CreditCard, Key, Database, Shield, Bell, Palette, Link2, Save, ChevronRight, Plug, FileDown } from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -8,7 +9,17 @@ import { Switch } from "@/components/ui/switch";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 
+const quickAccessItems = [
+  { icon: Plug, label: "Integrations", description: "Connect third-party services", path: "/tenant/settings/integrations", color: "#8B5CF6" },
+  { icon: Key, label: "API Keys", description: "Manage API keys & webhooks", path: "/tenant/settings/api-keys", color: "#F59E0B" },
+  { icon: CreditCard, label: "Billing & Plans", description: "Subscription & invoices", path: "/tenant/settings/billing", color: "#10B981" },
+  { icon: FileDown, label: "Data Export", description: "Export your organization data", path: "/tenant/settings/data-export", color: "#3B82F6" },
+  { icon: Globe, label: "Custom Domain", description: "Configure your domain", path: "/tenant/settings/custom-domain", color: "#EC4899" },
+];
+
 const TenantSettings: React.FC = () => {
+  const navigate = useNavigate();
+
   return (
     <div className="space-y-6 animate-fade-in">
       {/* Header */}
@@ -21,6 +32,31 @@ const TenantSettings: React.FC = () => {
           <Save className="w-4 h-4" />
           Save Changes
         </Button>
+      </div>
+
+      {/* Quick Access Cards */}
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-4">
+        {quickAccessItems.map((item) => (
+          <Card 
+            key={item.path}
+            className="border-none shadow-sm hover:shadow-md transition-all cursor-pointer group"
+            onClick={() => navigate(item.path)}
+          >
+            <CardContent className="p-4 flex items-center gap-3">
+              <div 
+                className="w-10 h-10 rounded-lg flex items-center justify-center"
+                style={{ backgroundColor: `${item.color}15` }}
+              >
+                <item.icon className="w-5 h-5" style={{ color: item.color }} />
+              </div>
+              <div className="flex-1 min-w-0">
+                <p className="font-medium text-[#0F1E3A] text-sm truncate">{item.label}</p>
+                <p className="text-xs text-[#6B7280] truncate">{item.description}</p>
+              </div>
+              <ChevronRight className="w-4 h-4 text-[#9CA3AF] group-hover:text-[#005EEB] transition-colors" />
+            </CardContent>
+          </Card>
+        ))}
       </div>
 
       <Tabs defaultValue="general" className="space-y-6">
