@@ -2,7 +2,6 @@ import React, { useState, createContext, useContext } from "react";
 import { Outlet, useLocation } from "react-router-dom";
 import { TenantHeader } from "./TenantHeader";
 import { TenantSidebar } from "./TenantSidebar";
-import { TrialBanner } from "./TrialBanner";
 import "@/styles/tenant-theme.css";
 
 interface TenantContextType {
@@ -54,8 +53,6 @@ export const TenantLayout: React.FC = () => {
       <div className="tenant-portal min-h-screen bg-[#F7F9FC] flex flex-col">
         <TenantHeader />
         
-        {isTrialMode && !isOnboarding && <TrialBanner />}
-        
         <div className="flex flex-1">
           {!isOnboarding && <TenantSidebar />}
           
@@ -68,7 +65,7 @@ export const TenantLayout: React.FC = () => {
                   : "ml-[280px]"
             }`}
             style={{ 
-              paddingTop: isTrialMode && !isOnboarding ? "calc(72px + 52px)" : "72px",
+              paddingTop: "72px",
               minHeight: "100vh"
             }}
           >
