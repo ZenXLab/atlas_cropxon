@@ -2,14 +2,18 @@ import { useState, useMemo, memo, useCallback } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
+import { motion } from "framer-motion";
 import { 
   FileText, Receipt, Users, TrendingUp, Clock, UserPlus, Building2, ArrowRight,
-  Activity, Server, Shield, Zap, RefreshCw, CheckCircle2, AlertCircle, XCircle
+  Activity, Server, Shield, Zap, RefreshCw, CheckCircle2, AlertCircle, XCircle,
+  MousePointer, Megaphone, Target, Brain, BarChart3, Settings, CreditCard,
+  Database, Globe, Lock, Package, ClipboardList, Calendar, HeadphonesIcon,
+  FolderKanban, Mail, Gauge, ShieldCheck, Key, Bell, Plug, FileCode
 } from "lucide-react";
 import { Link } from "react-router-dom";
 import { format } from "date-fns";
 import { ClickstreamSummaryWidget } from "./modules/clickstream/ClickstreamSummaryWidget";
-import { AdminCardSkeleton, AdminDashboardSkeleton } from "./AdminCardSkeleton";
+import { AdminCardSkeleton } from "./AdminCardSkeleton";
 import { 
   useAdminStats, 
   useRecentQuotes, 
@@ -119,27 +123,121 @@ export const AdminOverview = () => {
     return <XCircle className="h-4 w-4 text-red-500" />;
   };
 
+  // Quick action items for all admin functionalities
+  const quickActions = useMemo(() => [
+    // Tenant & Client Management
+    { name: "Tenants", icon: Building2, path: "/admin/tenants", color: "text-cyan-600", bg: "bg-cyan-500/10" },
+    { name: "Users", icon: Users, path: "/admin/users", color: "text-purple-600", bg: "bg-purple-500/10" },
+    { name: "Onboarding", icon: UserPlus, path: "/admin/onboarding-tracker", color: "text-orange-600", bg: "bg-orange-500/10" },
+    { name: "Client Health", icon: Activity, path: "/admin/client-health", color: "text-green-600", bg: "bg-green-500/10" },
+    
+    // Sales & Revenue
+    { name: "Quotes", icon: FileText, path: "/admin/quotes", color: "text-primary", bg: "bg-primary/10" },
+    { name: "Invoices", icon: Receipt, path: "/admin/invoices", color: "text-emerald-600", bg: "bg-emerald-500/10" },
+    { name: "CRM", icon: Target, path: "/admin/crm", color: "text-rose-600", bg: "bg-rose-500/10" },
+    { name: "Pipeline", icon: TrendingUp, path: "/admin/pipeline", color: "text-blue-600", bg: "bg-blue-500/10" },
+    { name: "Revenue", icon: CreditCard, path: "/admin/revenue", color: "text-green-600", bg: "bg-green-500/10" },
+    { name: "Pricing", icon: Gauge, path: "/admin/pricing", color: "text-amber-600", bg: "bg-amber-500/10" },
+    
+    // Marketing & Analytics
+    { name: "Clickstream", icon: MousePointer, path: "/admin/clickstream", color: "text-indigo-600", bg: "bg-indigo-500/10" },
+    { name: "Analytics", icon: BarChart3, path: "/admin/analytics", color: "text-violet-600", bg: "bg-violet-500/10" },
+    { name: "Marketing", icon: Megaphone, path: "/admin/marketing", color: "text-pink-600", bg: "bg-pink-500/10" },
+    { name: "Lead Scoring", icon: Target, path: "/admin/lead-scoring", color: "text-orange-600", bg: "bg-orange-500/10" },
+    { name: "Email Campaigns", icon: Mail, path: "/admin/email-campaigns", color: "text-sky-600", bg: "bg-sky-500/10" },
+    { name: "A/B Testing", icon: Zap, path: "/admin/ab-testing", color: "text-yellow-600", bg: "bg-yellow-500/10" },
+    
+    // Operations
+    { name: "Projects", icon: FolderKanban, path: "/admin/projects", color: "text-teal-600", bg: "bg-teal-500/10" },
+    { name: "Tickets", icon: HeadphonesIcon, path: "/admin/tickets", color: "text-red-600", bg: "bg-red-500/10" },
+    { name: "Meetings", icon: Calendar, path: "/admin/meetings", color: "text-blue-600", bg: "bg-blue-500/10" },
+    { name: "Files", icon: FileCode, path: "/admin/files", color: "text-slate-600", bg: "bg-slate-500/10" },
+    
+    // AI & Intelligence
+    { name: "AI Dashboard", icon: Brain, path: "/admin/ai", color: "text-fuchsia-600", bg: "bg-fuchsia-500/10" },
+    { name: "Predictive", icon: TrendingUp, path: "/admin/predictive", color: "text-violet-600", bg: "bg-violet-500/10" },
+    
+    // Infrastructure
+    { name: "MSP Monitor", icon: Server, path: "/admin/msp", color: "text-gray-600", bg: "bg-gray-500/10" },
+    { name: "Database", icon: Database, path: "/admin/database", color: "text-emerald-600", bg: "bg-emerald-500/10" },
+    { name: "Cloud", icon: Globe, path: "/admin/cloud", color: "text-sky-600", bg: "bg-sky-500/10" },
+    { name: "API Gateway", icon: Plug, path: "/admin/api-gateway", color: "text-indigo-600", bg: "bg-indigo-500/10" },
+    
+    // Security & Compliance
+    { name: "Security", icon: Shield, path: "/admin/security", color: "text-red-600", bg: "bg-red-500/10" },
+    { name: "Access Control", icon: Lock, path: "/admin/access-control", color: "text-amber-600", bg: "bg-amber-500/10" },
+    { name: "Audit Logs", icon: ClipboardList, path: "/admin/audit", color: "text-slate-600", bg: "bg-slate-500/10" },
+    { name: "Threats", icon: ShieldCheck, path: "/admin/threats", color: "text-rose-600", bg: "bg-rose-500/10" },
+    
+    // Platform Settings
+    { name: "Plugins", icon: Package, path: "/admin/plugins", color: "text-purple-600", bg: "bg-purple-500/10" },
+    { name: "Integrations", icon: Plug, path: "/admin/integrations", color: "text-blue-600", bg: "bg-blue-500/10" },
+    { name: "API Keys", icon: Key, path: "/admin/api-keys", color: "text-amber-600", bg: "bg-amber-500/10" },
+    { name: "Notifications", icon: Bell, path: "/admin/notifications", color: "text-pink-600", bg: "bg-pink-500/10" },
+    { name: "Settings", icon: Settings, path: "/admin/settings", color: "text-gray-600", bg: "bg-gray-500/10" },
+  ], []);
+
   if (loading) {
     return (
       <div className="space-y-6">
-        <div className="flex items-center justify-between">
+        {/* Animated Loading Header */}
+        <motion.div 
+          initial={{ opacity: 0, y: -10 }}
+          animate={{ opacity: 1, y: 0 }}
+          className="flex items-center justify-between"
+        >
           <div className="space-y-2">
             <div className="h-8 w-48 bg-muted rounded animate-pulse" />
             <div className="h-4 w-64 bg-muted rounded animate-pulse" />
           </div>
-        </div>
+          <div className="flex items-center gap-2">
+            <div className="flex gap-1">
+              {[0, 1, 2].map((i) => (
+                <motion.div
+                  key={i}
+                  className="h-2 w-2 rounded-full bg-primary"
+                  animate={{ 
+                    y: [0, -8, 0],
+                    opacity: [0.5, 1, 0.5]
+                  }}
+                  transition={{
+                    duration: 0.6,
+                    repeat: Infinity,
+                    delay: i * 0.15,
+                  }}
+                />
+              ))}
+            </div>
+            <span className="text-sm text-muted-foreground">Loading dashboard...</span>
+          </div>
+        </motion.div>
+        
+        {/* Stats Skeleton with staggered animation */}
         <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-6">
           {[...Array(6)].map((_, i) => (
-            <AdminCardSkeleton key={i} variant="stat" />
+            <motion.div
+              key={i}
+              initial={{ opacity: 0, y: 20 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ delay: i * 0.1 }}
+            >
+              <AdminCardSkeleton variant="stat" />
+            </motion.div>
           ))}
         </div>
+        
+        {/* Content Skeleton */}
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-          <AdminCardSkeleton variant="list" />
-          <AdminCardSkeleton variant="list" />
-        </div>
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-          <AdminCardSkeleton variant="table" />
-          <AdminCardSkeleton variant="list" />
+          {[0, 1].map((i) => (
+            <motion.div
+              key={i}
+              initial={{ opacity: 0, y: 20 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ delay: 0.6 + i * 0.1 }}
+            >
+              <AdminCardSkeleton variant="list" />
+            </motion.div>
+          ))}
         </div>
       </div>
     );
@@ -322,6 +420,39 @@ export const AdminOverview = () => {
               ))}
             </div>
           )}
+        </CardContent>
+      </Card>
+
+      {/* Quick Actions - All Admin Functionalities */}
+      <Card>
+        <CardHeader>
+          <CardTitle className="flex items-center gap-2">
+            <Zap className="h-5 w-5 text-yellow-600" />
+            Quick Actions
+          </CardTitle>
+        </CardHeader>
+        <CardContent>
+          <div className="grid grid-cols-3 sm:grid-cols-4 md:grid-cols-6 lg:grid-cols-8 xl:grid-cols-10 gap-3">
+            {quickActions.map((action, index) => (
+              <motion.div
+                key={action.path}
+                initial={{ opacity: 0, scale: 0.9 }}
+                animate={{ opacity: 1, scale: 1 }}
+                transition={{ delay: index * 0.02 }}
+              >
+                <Link to={action.path}>
+                  <div className="flex flex-col items-center gap-2 p-3 rounded-xl bg-muted/30 hover:bg-muted/60 border border-transparent hover:border-primary/20 transition-all duration-200 group cursor-pointer">
+                    <div className={`p-2.5 rounded-lg ${action.bg} group-hover:scale-110 transition-transform`}>
+                      <action.icon className={`h-5 w-5 ${action.color}`} />
+                    </div>
+                    <span className="text-xs font-medium text-center text-muted-foreground group-hover:text-foreground transition-colors line-clamp-1">
+                      {action.name}
+                    </span>
+                  </div>
+                </Link>
+              </motion.div>
+            ))}
+          </div>
         </CardContent>
       </Card>
     </div>
