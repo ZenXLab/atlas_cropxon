@@ -23,6 +23,9 @@ import Dashboard from "./pages/Dashboard";
 import AdminAuth from "./pages/admin/AdminAuth";
 import AdminPage from "./pages/admin/AdminPage";
 
+// Tenant Portal
+import TenantPortal from "./pages/tenant/TenantPortal";
+
 // Service pages
 import DigitalEngineering from "./pages/services/DigitalEngineering";
 import AIAutomation from "./pages/services/AIAutomation";
@@ -59,6 +62,9 @@ const App = () => (
             {/* Admin Routes */}
             <Route path="/admin/login" element={<AdminAuth />} />
             <Route path="/admin/*" element={<AdminPage />} />
+            
+            {/* Tenant Super-Admin Portal */}
+            <Route path="/tenant/*" element={<TenantPortal />} />
             
             {/* Service Pages */}
             <Route path="/services/digital-engineering" element={<DigitalEngineering />} />
