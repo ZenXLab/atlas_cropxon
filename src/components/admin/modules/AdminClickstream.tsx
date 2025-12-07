@@ -22,6 +22,7 @@ import { DeviceAnalytics } from "./clickstream/DeviceAnalytics";
 import { LiveSessionRecording } from "./clickstream/LiveSessionRecording";
 import { RRWebPlayer } from "./clickstream/RRWebPlayer";
 import { ClickstreamLayout } from "./clickstream/ClickstreamLayout";
+import { PrivacyControls, defaultPrivacySettings, PrivacySettings } from "./clickstream/PrivacyControls";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
 
 export const AdminClickstream = () => {
@@ -35,6 +36,7 @@ export const AdminClickstream = () => {
   const [eventsExpanded, setEventsExpanded] = useState(false);
   const [notificationsEnabled, setNotificationsEnabled] = useState(true);
   const [activeSection, setActiveSection] = useState("overview");
+  const [privacySettings, setPrivacySettings] = useState<PrivacySettings>(defaultPrivacySettings);
   const queryClient = useQueryClient();
 
   const { data: events, isLoading, refetch } = useQuery({
@@ -356,6 +358,17 @@ export const AdminClickstream = () => {
               </Table>
             </CardContent>
           </Card>
+        );
+
+      case "privacy":
+        return (
+          <PrivacyControls
+            settings={privacySettings}
+            onSettingsChange={setPrivacySettings}
+            onSave={() => {
+              localStorage.setItem("rrweb_privacy_settings", JSON.stringify(privacySettings));
+            }}
+          />
         );
 
       default:

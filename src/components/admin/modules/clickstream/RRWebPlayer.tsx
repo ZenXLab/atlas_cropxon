@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useRef, useState, useMemo } from "react";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -14,12 +14,15 @@ import {
   Video, 
   Clock,
   Monitor,
-  RefreshCw
+  RefreshCw,
+  Filter
 } from "lucide-react";
-import { format } from "date-fns";
+import { format, isWithinInterval, parseISO } from "date-fns";
 import { motion } from "framer-motion";
 import rrwebPlayer from "rrweb-player";
 import "rrweb-player/dist/style.css";
+import { SessionFiltersPanel, SessionFilters, defaultFilters } from "./SessionFilters";
+import { SessionHighlights } from "./SessionHighlights";
 
 interface SessionRecording {
   id: string;
@@ -38,6 +41,7 @@ export const RRWebPlayer = () => {
   const [selectedRecording, setSelectedRecording] = useState<SessionRecording | null>(null);
   const [isPlaying, setIsPlaying] = useState(false);
   const [progress, setProgress] = useState(0);
+  const [filters, setFilters] = useState<SessionFilters>(defaultFilters);
   const playerRef = useRef<rrwebPlayer | null>(null);
   const containerRef = useRef<HTMLDivElement>(null);
 
@@ -49,7 +53,7 @@ export const RRWebPlayer = () => {
         .from("session_recordings")
         .select("*")
         .order("created_at", { ascending: false })
-        .limit(50);
+        .limit(100);
 
       if (error) {
         console.error("Error fetching recordings:", error);
@@ -59,6 +63,42 @@ export const RRWebPlayer = () => {
       return (data || []) as SessionRecording[];
     },
   });
+
+  // Filter recordings based on user selections
+  const filteredRecordings = useMemo(() => {
+    if (!recordings) return [];
+    
+    return recordings.filter((recording) => {
+      // Page URL filter
+      if (filters.pageUrl) {
+        const pageMatches = recording.metadata?.url?.toLowerCase().includes(filters.pageUrl.toLowerCase());
+        if (!pageMatches) return false;
+      }
+      
+      // Duration filters (convert ms to seconds)
+      const durationSec = (recording.duration_ms || 0) / 1000;
+      if (filters.minDuration && durationSec < filters.minDuration) return false;
+      if (filters.maxDuration && durationSec > filters.maxDuration) return false;
+      
+      // Date range filter
+      if (filters.dateRange?.from) {
+        const recordingDate = parseISO(recording.start_time);
+        if (filters.dateRange.to) {
+          if (!isWithinInterval(recordingDate, { start: filters.dateRange.from, end: filters.dateRange.to })) {
+            return false;
+          }
+        } else {
+          if (recordingDate < filters.dateRange.from) return false;
+        }
+      }
+      
+      // Highlight filters (rage clicks, dead clicks, form abandonment)
+      // These would require analyzing the events - for now we show all if filters are on
+      // In production, you'd pre-compute these and store as metadata
+      
+      return true;
+    });
+  }, [recordings, filters]);
 
   // Initialize player when recording is selected
   useEffect(() => {
@@ -136,6 +176,14 @@ export const RRWebPlayer = () => {
     }
   };
 
+  const handleSeekToTimestamp = (timestamp: number) => {
+    if (playerRef.current && selectedRecording?.events?.length) {
+      const startTime = selectedRecording.events[0]?.timestamp || 0;
+      const relativeTime = timestamp - startTime;
+      playerRef.current.goto(relativeTime);
+    }
+  };
+
   const handleSpeedChange = (speed: string) => {
     if (playerRef.current) {
       playerRef.current.setSpeed(Number(speed));
@@ -186,25 +234,40 @@ export const RRWebPlayer = () => {
         </div>
       </div>
 
-      <div className="grid gap-6 lg:grid-cols-3">
+      {/* Filters */}
+      <SessionFiltersPanel
+        filters={filters}
+        onFiltersChange={setFilters}
+        onClear={() => setFilters(defaultFilters)}
+      />
+
+      <div className="grid gap-6 lg:grid-cols-4">
         {/* Session List */}
         <Card className="lg:col-span-1">
           <CardHeader className="pb-3">
-            <CardTitle className="text-base">Recorded Sessions</CardTitle>
+            <CardTitle className="text-base flex items-center gap-2">
+              Recorded Sessions
+              {filters.pageUrl || filters.dateRange ? (
+                <Badge variant="secondary" className="text-xs">
+                  <Filter className="h-3 w-3 mr-1" />
+                  Filtered
+                </Badge>
+              ) : null}
+            </CardTitle>
             <CardDescription>
-              {recordings?.length || 0} sessions available
+              {filteredRecordings?.length || 0} of {recordings?.length || 0} sessions
             </CardDescription>
           </CardHeader>
           <CardContent className="p-0">
-            <div className="max-h-[500px] overflow-y-auto">
-              {recordings?.length === 0 ? (
+            <div className="max-h-[400px] overflow-y-auto">
+              {filteredRecordings?.length === 0 ? (
                 <div className="p-4 text-center text-muted-foreground">
                   <Video className="h-12 w-12 mx-auto mb-2 opacity-30" />
-                  <p className="text-sm">No recordings yet</p>
-                  <p className="text-xs">Sessions will appear as users browse</p>
+                  <p className="text-sm">No recordings match filters</p>
+                  <p className="text-xs">Try adjusting your criteria</p>
                 </div>
               ) : (
-                recordings?.map((recording, idx) => (
+                filteredRecordings?.map((recording, idx) => (
                   <motion.button
                     key={recording.id}
                     initial={{ opacity: 0, x: -10 }}
@@ -244,6 +307,11 @@ export const RRWebPlayer = () => {
                       <span className="text-xs text-muted-foreground">
                         {recording.metadata?.screenWidth}x{recording.metadata?.screenHeight}
                       </span>
+                      {recording.metadata?.url && (
+                        <span className="text-xs text-muted-foreground truncate max-w-[100px]">
+                          {recording.metadata.url}
+                        </span>
+                      )}
                     </div>
                   </motion.button>
                 ))
@@ -344,6 +412,14 @@ export const RRWebPlayer = () => {
             )}
           </CardContent>
         </Card>
+
+        {/* Highlights Panel */}
+        <div className="lg:col-span-1">
+          <SessionHighlights
+            recording={selectedRecording}
+            onSeekTo={handleSeekToTimestamp}
+          />
+        </div>
       </div>
     </div>
   );

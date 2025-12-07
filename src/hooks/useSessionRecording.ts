@@ -2,11 +2,36 @@ import { useEffect, useRef, useCallback } from "react";
 import { record, EventType } from "rrweb";
 import { supabase } from "@/integrations/supabase/client";
 
+interface PrivacySettings {
+  maskAllInputs: boolean;
+  maskPasswords: boolean;
+  maskEmails: boolean;
+  maskCreditCards: boolean;
+  excludedPages: string[];
+  excludedSelectors: string[];
+  recordCanvas: boolean;
+  collectFonts: boolean;
+  inlineStylesheet: boolean;
+}
+
 interface UseSessionRecordingOptions {
   enabled?: boolean;
   sampleRate?: number;
   checkoutEveryNms?: number;
+  privacySettings?: Partial<PrivacySettings>;
 }
+
+const defaultPrivacySettings: PrivacySettings = {
+  maskAllInputs: true,
+  maskPasswords: true,
+  maskEmails: false,
+  maskCreditCards: true,
+  excludedPages: ["/admin", "/portal", "/tenant"],
+  excludedSelectors: [".sensitive", "[data-private]", ".credit-card"],
+  recordCanvas: false,
+  collectFonts: false,
+  inlineStylesheet: true,
+};
 
 // Generate or retrieve session ID
 const getSessionId = (): string => {
@@ -18,8 +43,26 @@ const getSessionId = (): string => {
   return sessionId;
 };
 
+// Check if current page should be excluded from recording
+const isPageExcluded = (excludedPages: string[]): boolean => {
+  const currentPath = window.location.pathname;
+  return excludedPages.some(pattern => {
+    if (pattern.endsWith("*")) {
+      return currentPath.startsWith(pattern.slice(0, -1));
+    }
+    return currentPath === pattern;
+  });
+};
+
 export const useSessionRecording = (options: UseSessionRecordingOptions = {}) => {
-  const { enabled = true, checkoutEveryNms = 30000 } = options;
+  const { 
+    enabled = true, 
+    checkoutEveryNms = 30000,
+    privacySettings: customPrivacy = {}
+  } = options;
+  
+  const privacy = { ...defaultPrivacySettings, ...customPrivacy };
+  
   const eventsRef = useRef<any[]>([]);
   const stopFnRef = useRef<(() => void) | null>(null);
   const recordingIdRef = useRef<string | null>(null);
@@ -57,6 +100,7 @@ export const useSessionRecording = (options: UseSessionRecordingOptions = {}) =>
         screenWidth: window.innerWidth,
         screenHeight: window.innerHeight,
         url: window.location.pathname,
+        privacySettings: privacy,
       },
       updated_at: now.toISOString(),
     };
@@ -92,16 +136,25 @@ export const useSessionRecording = (options: UseSessionRecordingOptions = {}) =>
     } catch (err) {
       console.error("Failed to save session recording:", err);
     }
-  }, []);
+  }, [privacy]);
 
   // Start recording
   const startRecording = useCallback(() => {
     if (stopFnRef.current) return; // Already recording
 
+    // Check if page is excluded
+    if (isPageExcluded(privacy.excludedPages)) {
+      console.log("Session recording disabled for this page:", window.location.pathname);
+      return;
+    }
+
     console.log("Starting rrweb session recording...");
     startTimeRef.current = new Date();
     eventsRef.current = [];
     recordingIdRef.current = null;
+
+    // Build block selectors from privacy settings
+    const blockSelectors = privacy.excludedSelectors.join(",");
 
     stopFnRef.current = record({
       emit: (event) => {
@@ -115,21 +168,24 @@ export const useSessionRecording = (options: UseSessionRecordingOptions = {}) =>
         media: 800,
         input: "last",
       },
-      recordCanvas: false,
-      collectFonts: false,
-      inlineStylesheet: true,
-      maskAllInputs: true,
+      recordCanvas: privacy.recordCanvas,
+      collectFonts: privacy.collectFonts,
+      inlineStylesheet: privacy.inlineStylesheet,
+      maskAllInputs: privacy.maskAllInputs,
       maskInputOptions: {
-        password: true,
-        email: false,
+        password: privacy.maskPasswords,
+        email: privacy.maskEmails,
+        // @ts-ignore - credit card masking
+        creditcard: privacy.maskCreditCards,
       },
+      blockSelector: blockSelectors || undefined,
     });
 
     // Save events periodically
     saveIntervalRef.current = setInterval(() => {
       saveEvents(false);
     }, 10000); // Save every 10 seconds
-  }, [checkoutEveryNms, saveEvents]);
+  }, [checkoutEveryNms, saveEvents, privacy]);
 
   // Stop recording
   const stopRecording = useCallback(() => {
@@ -158,20 +214,32 @@ export const useSessionRecording = (options: UseSessionRecordingOptions = {}) =>
       stopRecording();
     };
 
+    // Re-check on route change
+    const handleRouteChange = () => {
+      if (isPageExcluded(privacy.excludedPages)) {
+        stopRecording();
+      } else if (!stopFnRef.current) {
+        startRecording();
+      }
+    };
+
     window.addEventListener("beforeunload", handleUnload);
     window.addEventListener("pagehide", handleUnload);
+    window.addEventListener("popstate", handleRouteChange);
 
     return () => {
       window.removeEventListener("beforeunload", handleUnload);
       window.removeEventListener("pagehide", handleUnload);
+      window.removeEventListener("popstate", handleRouteChange);
       stopRecording();
     };
-  }, [enabled, startRecording, stopRecording]);
+  }, [enabled, startRecording, stopRecording, privacy.excludedPages]);
 
   return {
     sessionId: sessionIdRef.current,
     startRecording,
     stopRecording,
     eventCount: eventsRef.current.length,
+    isRecording: !!stopFnRef.current,
   };
 };

@@ -13,7 +13,8 @@ import {
   Activity,
   ChevronRight,
   ChevronDown,
-  Layers
+  Layers,
+  Shield
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { Badge } from "@/components/ui/badge";
@@ -112,6 +113,12 @@ const navItems: NavItem[] = [
     label: "Recent Events",
     icon: Eye,
     description: "Live event stream",
+  },
+  {
+    id: "privacy",
+    label: "Privacy Controls",
+    icon: Shield,
+    description: "Recording privacy settings",
   },
 ];
 
