@@ -22,6 +22,7 @@ import {
   Handshake,
   Mail,
   DollarSign,
+  Sparkles,
   type LucideIcon
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
@@ -174,6 +175,15 @@ export const Header = ({ onQuoteClick }: HeaderProps) => {
             </div>
 
             <Link 
+              to="/features" 
+              className="flex items-center gap-1.5 px-3 py-2 text-foreground/70 hover:text-foreground transition-all duration-200 font-medium text-sm rounded-lg hover:bg-muted/50"
+              role="menuitem"
+            >
+              <Sparkles className="w-4 h-4" />
+              Features
+            </Link>
+
+            <Link 
               to="/industries" 
               className="flex items-center gap-1.5 px-3 py-2 text-foreground/70 hover:text-foreground transition-all duration-200 font-medium text-sm rounded-lg hover:bg-muted/50"
               role="menuitem"
@@ -300,8 +310,19 @@ export const Header = ({ onQuoteClick }: HeaderProps) => {
               {services.map(renderMobileMenuItem)}
               
               <Link 
-                to="/industries" 
+                to="/features" 
                 className="flex items-center gap-3 px-4 py-3 text-foreground font-medium hover:bg-muted/50 rounded-xl transition-colors mt-2" 
+                onClick={() => setMobileMenuOpen(false)}
+              >
+                <div className="w-8 h-8 rounded-lg bg-primary/10 flex items-center justify-center">
+                  <Sparkles className="w-4 h-4 text-primary" />
+                </div>
+                <span>Features</span>
+              </Link>
+
+              <Link 
+                to="/industries" 
+                className="flex items-center gap-3 px-4 py-3 text-foreground font-medium hover:bg-muted/50 rounded-xl transition-colors" 
                 onClick={() => setMobileMenuOpen(false)}
               >
                 <div className="w-8 h-8 rounded-lg bg-primary/10 flex items-center justify-center">

@@ -10,6 +10,7 @@ import { ClickstreamTracker } from "@/components/ClickstreamTracker";
 import Index from "./pages/Index";
 import Auth from "./pages/Auth";
 import Industries from "./pages/Industries";
+import Features from "./pages/Features";
 import NotFound from "./pages/NotFound";
 import GetQuote from "./pages/GetQuote";
 
@@ -51,6 +52,7 @@ const App = () => (
             <Route path="/" element={<Index />} />
             <Route path="/auth" element={<Auth />} />
             <Route path="/industries" element={<Industries />} />
+            <Route path="/features" element={<Features />} />
             <Route path="/get-quote" element={<GetQuote />} />
             
             {/* Client Portal Routes */}

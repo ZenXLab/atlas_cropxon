@@ -36,18 +36,18 @@ export const HeroSection = ({ onQuoteClick }: HeroSectionProps) => {
 
           {/* Main Headline */}
           <h1 className="text-4xl sm:text-5xl md:text-6xl lg:text-7xl font-heading font-extrabold tracking-tight mb-6 animate-fade-in-up">
-            <span className="text-foreground">ATLAS</span>
-            <span className="block text-xl sm:text-2xl md:text-3xl lg:text-4xl mt-3 font-semibold text-gradient">
-              Consulting & Digital Transformation
+            <span className="text-gradient">From Hire to Retire</span>
+            <span className="block text-xl sm:text-2xl md:text-3xl lg:text-4xl mt-3 font-medium text-foreground/90">
+              And Everything in Between
             </span>
           </h1>
 
           {/* Subheadline */}
-          <p className="text-lg sm:text-xl md:text-2xl text-muted-foreground max-w-3xl mx-auto mb-10 animate-fade-in-up animation-delay-200">
-            Built for the Next Generation of Innovation.
+          <p className="text-lg sm:text-xl md:text-2xl text-muted-foreground max-w-3xl mx-auto mb-6 animate-fade-in-up animation-delay-200">
+            The AI-Powered Workforce OS that automates HR, Payroll, Compliance, Finance, Recruitment, Projects, and Operations for modern enterprises.
           </p>
 
-          {/* Tagline */}
+          {/* Company Attribution */}
           <p className="text-sm sm:text-base text-foreground/60 mb-12 animate-fade-in-up animation-delay-400">
             A Division of <span className="text-accent font-semibold">CropXon Innovations Pvt. Ltd.</span>
           </p>
