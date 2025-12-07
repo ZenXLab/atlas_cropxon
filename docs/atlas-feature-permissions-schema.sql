@@ -503,3 +503,147 @@ INSERT INTO public.global_features (feature_key, name, description, category, mi
 ('integrations.sso', 'SSO Integration', 'Single Sign-On support', 'integrations', 'business'),
 ('integrations.api_access', 'API Access', 'REST API access', 'integrations', 'business'),
 ('integrations.custom_webhooks', 'Custom Webhooks', 'Custom webhook integrations', 'integrations', 'enterprise');
+
+-- =========================================================
+-- IMPLEMENTATION GUIDE: CONNECTING NOTIFICATIONS TO SUPABASE
+-- =========================================================
+-- 
+-- This section provides step-by-step instructions for connecting
+-- the notification system to your Supabase instance.
+--
+-- =========================================================
+-- STEP 1: RUN THE MIGRATION
+-- =========================================================
+-- Execute this entire SQL file on your Supabase instance to create:
+-- - global_features table (master feature registry)
+-- - tenant_features table (features enabled per tenant)
+-- - role_feature_defaults table (role-based permissions)
+-- - employee_feature_access table (individual access)
+-- - employee_notifications table (notification storage)
+-- - notification_preferences table (user preferences)
+-- - feature_unlock_log table (audit trail)
+--
+-- Run in Supabase SQL Editor: 
+-- 1. Go to your Supabase dashboard > SQL Editor
+-- 2. Paste this entire file
+-- 3. Click "Run"
+--
+-- =========================================================
+-- STEP 2: ENABLE REAL-TIME FOR NOTIFICATIONS
+-- =========================================================
+-- Run this SQL to enable real-time updates for notifications:
+--
+-- ALTER PUBLICATION supabase_realtime ADD TABLE public.employee_notifications;
+--
+-- =========================================================
+-- STEP 3: CONFIGURE EDGE FUNCTION SECRETS
+-- =========================================================
+-- Ensure the following secrets are set in your Supabase project:
+-- - RESEND_API_KEY: Your Resend API key for email notifications
+-- - SUPABASE_URL: Auto-set by Supabase
+-- - SUPABASE_SERVICE_ROLE_KEY: Auto-set by Supabase
+--
+-- To set secrets:
+-- 1. Go to Supabase Dashboard > Settings > Edge Functions
+-- 2. Add each secret with its value
+--
+-- =========================================================
+-- STEP 4: DEPLOY THE EMAIL EDGE FUNCTION
+-- =========================================================
+-- The send-feature-unlock-email edge function sends emails when 
+-- features are unlocked for employees.
+--
+-- Deploy by pushing your code or using Supabase CLI:
+-- supabase functions deploy send-feature-unlock-email
+--
+-- =========================================================
+-- STEP 5: FRONTEND INTEGRATION
+-- =========================================================
+-- The frontend uses these hooks/components:
+--
+-- 1. useNotifications hook (src/hooks/useNotifications.ts)
+--    - Fetches notifications from Supabase
+--    - Handles real-time subscriptions
+--    - Provides markAsRead, markAllAsRead, deleteNotification
+--
+-- 2. NotificationBell component (src/components/portal/NotificationBell.tsx)
+--    - For client employee portal (/portal/*)
+--
+-- 3. TenantNotificationBell component (src/components/tenant/TenantNotificationBell.tsx)
+--    - For tenant super-admin portal (/tenant/*)
+--
+-- =========================================================
+-- STEP 6: CALLING THE EMAIL EDGE FUNCTION
+-- =========================================================
+-- When unlocking a feature for an employee, call the edge function:
+--
+-- await supabase.functions.invoke('send-feature-unlock-email', {
+--   body: {
+--     employeeEmail: 'employee@company.com',
+--     employeeName: 'John Doe',
+--     featureName: 'OpZenix Automations',
+--     featureDescription: 'Workflow automation powered by AI',
+--     actionUrl: 'https://atlas.cropxon.com/portal/opzenix',
+--     tenantName: 'Acme Corp'
+--   }
+-- });
+--
+-- =========================================================
+-- STEP 7: NOTIFICATION TRIGGER (AUTOMATIC)
+-- =========================================================
+-- The notify_feature_unlock() trigger automatically creates 
+-- in-app notifications when employee_feature_access rows are inserted.
+--
+-- To also send emails automatically, modify the trigger or 
+-- call the edge function from your application logic.
+--
+-- =========================================================
+-- USAGE: CHECKING IF FEATURE IS ENABLED FOR USER
+-- =========================================================
+-- Use the helper function in your application:
+--
+-- SELECT is_feature_enabled_for_user(
+--   'user-uuid-here',
+--   'intelligence.opzenix'
+-- );
+--
+-- Returns TRUE if the feature is enabled for the user.
+--
+-- =========================================================
+-- USAGE: CREATING NOTIFICATIONS FROM BACKEND
+-- =========================================================
+-- Insert notifications directly:
+--
+-- INSERT INTO public.employee_notifications (
+--   tenant_id,
+--   user_id,
+--   notification_type,
+--   channel,
+--   priority,
+--   title,
+--   message,
+--   action_url,
+--   action_label
+-- ) VALUES (
+--   'tenant-uuid',
+--   'user-uuid',
+--   'feature_unlock',
+--   'both',
+--   'normal',
+--   'New Feature Available!',
+--   'OpZenix Automations has been enabled for your account.',
+--   '/portal/opzenix',
+--   'Explore Now'
+-- );
+--
+-- =========================================================
+-- CLEANUP: MARK OLD NOTIFICATIONS AS READ
+-- =========================================================
+-- Periodically clean up old notifications:
+--
+-- UPDATE public.employee_notifications 
+-- SET is_read = true, read_at = now()
+-- WHERE created_at < now() - INTERVAL '30 days' 
+-- AND is_read = false;
+--
+-- =========================================================
