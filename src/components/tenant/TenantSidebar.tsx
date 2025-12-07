@@ -65,6 +65,7 @@ const coreModules: NavModule[] = [
     color: "#005EEB",
     items: [
       { label: "Employee Directory", icon: Users, path: "/tenant/workforce" },
+      { label: "Portal Access", icon: Key, path: "/tenant/employees", badge: "New", badgeVariant: "success" },
       { label: "Attendance & Leave", icon: Calendar, path: "/tenant/attendance" },
       { label: "Documents", icon: FileText, path: "/tenant/documents" },
       { label: "Announcements", icon: MessageSquare, path: "/tenant/announcements" },
