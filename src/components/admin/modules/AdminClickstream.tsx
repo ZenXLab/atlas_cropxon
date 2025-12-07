@@ -7,27 +7,33 @@ import { Button } from "@/components/ui/button";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from "@/components/ui/alert-dialog";
-import { MousePointer, Eye, Link, BarChart3, Clock, Users, RefreshCw, Radio, FlaskConical, TrendingUp, Trash2, AlertTriangle, Download, FileSpreadsheet } from "lucide-react";
+import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
+import { MousePointer, Eye, Link, BarChart3, Users, RefreshCw, Radio, FlaskConical, TrendingUp, Trash2, AlertTriangle, Download, FileSpreadsheet, ChevronDown, ChevronUp, Bell } from "lucide-react";
 import { format } from "date-fns";
 import { toast } from "sonner";
-import { motion } from "framer-motion";
+import { motion, AnimatePresence } from "framer-motion";
 import { ConversionFunnel } from "./clickstream/ConversionFunnel";
 import { ClickHeatmap } from "./clickstream/ClickHeatmap";
 import { SessionReplay } from "./clickstream/SessionReplay";
 import { GeoAnalytics } from "./clickstream/GeoAnalytics";
+import { UserJourney } from "./clickstream/UserJourney";
+import { DateRangePicker } from "./clickstream/DateRangePicker";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
 
 export const AdminClickstream = () => {
   const [eventFilter, setEventFilter] = useState<string>("all");
   const [timeRange, setTimeRange] = useState<string>("24h");
+  const [customDateRange, setCustomDateRange] = useState<{ from: Date; to: Date } | null>(null);
   const [isRefreshing, setIsRefreshing] = useState(false);
   const [liveEventsCount, setLiveEventsCount] = useState(0);
   const [isDeleting, setIsDeleting] = useState(false);
   const [lastUpdate, setLastUpdate] = useState<Date>(new Date());
+  const [eventsExpanded, setEventsExpanded] = useState(false);
+  const [notificationsEnabled, setNotificationsEnabled] = useState(true);
   const queryClient = useQueryClient();
 
   const { data: events, isLoading, refetch } = useQuery({
-    queryKey: ["clickstream-events", eventFilter, timeRange],
+    queryKey: ["clickstream-events", eventFilter, timeRange, customDateRange?.from?.toISOString(), customDateRange?.to?.toISOString()],
     queryFn: async () => {
       let query = supabase
         .from("clickstream_events")
@@ -39,17 +45,25 @@ export const AdminClickstream = () => {
         query = query.eq("event_type", eventFilter);
       }
 
-      const timeFilters: Record<string, number> = {
-        "1h": 1,
-        "24h": 24,
-        "7d": 168,
-        "30d": 720,
-      };
+      // Handle custom date range
+      if (timeRange === "custom" && customDateRange) {
+        query = query
+          .gte("created_at", customDateRange.from.toISOString())
+          .lte("created_at", customDateRange.to.toISOString());
+      } else {
+        const timeFilters: Record<string, number> = {
+          "1h": 1,
+          "24h": 24,
+          "7d": 168,
+          "30d": 720,
+          "90d": 2160,
+        };
 
-      if (timeFilters[timeRange]) {
-        const since = new Date();
-        since.setHours(since.getHours() - timeFilters[timeRange]);
-        query = query.gte("created_at", since.toISOString());
+        if (timeFilters[timeRange]) {
+          const since = new Date();
+          since.setHours(since.getHours() - timeFilters[timeRange]);
+          query = query.gte("created_at", since.toISOString());
+        }
       }
 
       const { data, error } = await query;
@@ -81,10 +95,10 @@ export const AdminClickstream = () => {
     },
   });
 
-  // Real-time subscription for clickstream events
+  // Real-time subscription for clickstream events with toast notifications
   useEffect(() => {
     const channel = supabase
-      .channel('clickstream-realtime-v2')
+      .channel('clickstream-realtime-v3')
       .on(
         'postgres_changes',
         {
@@ -97,16 +111,35 @@ export const AdminClickstream = () => {
           setLiveEventsCount(prev => prev + 1);
           setLastUpdate(new Date());
           queryClient.invalidateQueries({ queryKey: ["clickstream-events"] });
+          
+          // Show toast notification for new events
+          if (notificationsEnabled) {
+            const newEvent = payload.new as any;
+            const eventInfo = newEvent.event_type === 'pageview' 
+              ? `Page: ${newEvent.page_url || 'Unknown'}`
+              : newEvent.event_type === 'click'
+                ? `Clicked: ${newEvent.element_text?.slice(0, 30) || 'Element'}`
+                : `Action: ${newEvent.event_type}`;
+            
+            toast.info(`New ${newEvent.event_type} event`, {
+              description: eventInfo,
+              duration: 3000,
+              icon: <Radio className="h-4 w-4 text-emerald-500 animate-pulse" />,
+            });
+          }
         }
       )
       .subscribe((status) => {
         console.log("Clickstream subscription status:", status);
+        if (status === 'SUBSCRIBED') {
+          toast.success("Real-time tracking active", { duration: 2000 });
+        }
       });
 
     return () => {
       supabase.removeChannel(channel);
     };
-  }, [queryClient]);
+  }, [queryClient, notificationsEnabled]);
 
   // Real-time subscription for A/B test assignments
   useEffect(() => {
@@ -384,6 +417,18 @@ export const AdminClickstream = () => {
           </DropdownMenu>
 
           <Button
+            variant={notificationsEnabled ? "secondary" : "outline"}
+            size="sm"
+            onClick={() => {
+              setNotificationsEnabled(!notificationsEnabled);
+              toast.success(notificationsEnabled ? "Notifications disabled" : "Notifications enabled");
+            }}
+            className="gap-2"
+          >
+            <Bell className={`h-4 w-4 ${notificationsEnabled ? "text-primary" : ""}`} />
+            {notificationsEnabled ? "Alerts On" : "Alerts Off"}
+          </Button>
+          <Button
             variant="outline"
             size="sm"
             onClick={handleRefresh}
@@ -393,18 +438,14 @@ export const AdminClickstream = () => {
             <RefreshCw className={`h-4 w-4 ${isRefreshing ? "animate-spin" : ""}`} />
             Refresh
           </Button>
-          <Select value={timeRange} onValueChange={setTimeRange}>
-            <SelectTrigger className="w-32">
-              <Clock className="h-4 w-4 mr-2" />
-              <SelectValue />
-            </SelectTrigger>
-            <SelectContent>
-              <SelectItem value="1h">Last Hour</SelectItem>
-              <SelectItem value="24h">Last 24h</SelectItem>
-              <SelectItem value="7d">Last 7 Days</SelectItem>
-              <SelectItem value="30d">Last 30 Days</SelectItem>
-            </SelectContent>
-          </Select>
+          <DateRangePicker 
+            value={timeRange} 
+            onChange={(value, range) => {
+              setTimeRange(value);
+              setCustomDateRange(range || null);
+            }}
+            customRange={customDateRange}
+          />
           <Select value={eventFilter} onValueChange={setEventFilter}>
             <SelectTrigger className="w-36">
               <SelectValue />
@@ -479,6 +520,9 @@ export const AdminClickstream = () => {
         <SessionReplay events={events || []} />
         <GeoAnalytics events={events || []} />
       </div>
+
+      {/* User Journey Visualization */}
+      <UserJourney events={events || []} />
 
       {/* A/B Testing Integration */}
       {abTestStats.length > 0 && (
@@ -624,61 +668,139 @@ export const AdminClickstream = () => {
         </Card>
       </div>
 
+      {/* Collapsible Recent Events */}
       <Card>
-        <CardHeader>
-          <div className="flex items-center justify-between">
-            <div>
-              <CardTitle>Recent Events</CardTitle>
-              <CardDescription>Latest user interactions</CardDescription>
-            </div>
-            <Badge variant="outline" className="bg-emerald-500/10 text-emerald-600 border-emerald-500/30">
-              <Radio className="h-3 w-3 mr-1 animate-pulse" />
-              Realtime Stream
-            </Badge>
-          </div>
-        </CardHeader>
-        <CardContent>
-          {isLoading ? (
-            <div className="text-center py-8 text-muted-foreground">Loading events...</div>
-          ) : events?.length === 0 ? (
-            <div className="text-center py-8 text-muted-foreground">No events recorded yet</div>
-          ) : (
-            <Table>
-              <TableHeader>
-                <TableRow>
-                  <TableHead>Event</TableHead>
-                  <TableHead>Page</TableHead>
-                  <TableHead>Element</TableHead>
-                  <TableHead>Session</TableHead>
-                  <TableHead>Time</TableHead>
-                </TableRow>
-              </TableHeader>
-              <TableBody>
-                {events?.slice(0, 50).map((event, idx) => (
-                  <motion.tr
-                    key={event.id}
-                    initial={idx < 5 ? { opacity: 0, backgroundColor: "hsl(var(--primary) / 0.1)" } : {}}
-                    animate={{ opacity: 1, backgroundColor: "transparent" }}
-                    transition={{ delay: idx * 0.05 }}
-                    className="border-b"
-                  >
-                    <TableCell>
-                      <Badge className={getEventBadge(event.event_type)}>
-                        {event.event_type}
-                      </Badge>
-                    </TableCell>
-                    <TableCell className="max-w-32 truncate">{event.page_url}</TableCell>
-                    <TableCell className="max-w-32 truncate">{event.element_text || "-"}</TableCell>
-                    <TableCell className="font-mono text-xs">{event.session_id?.slice(0, 12)}...</TableCell>
-                    <TableCell className="text-muted-foreground text-sm">
-                      {format(new Date(event.created_at), "HH:mm:ss")}
-                    </TableCell>
-                  </motion.tr>
-                ))}
-              </TableBody>
-            </Table>
-          )}
-        </CardContent>
+        <Collapsible open={eventsExpanded} onOpenChange={setEventsExpanded}>
+          <CardHeader>
+            <CollapsibleTrigger asChild>
+              <div className="flex items-center justify-between cursor-pointer hover:bg-muted/50 -mx-6 -my-4 px-6 py-4 rounded-t-lg transition-colors">
+                <div className="flex items-center gap-3">
+                  <div>
+                    <CardTitle className="flex items-center gap-2">
+                      Recent Events
+                      {events && events.length > 0 && (
+                        <Badge variant="secondary" className="ml-2">{events.length}</Badge>
+                      )}
+                    </CardTitle>
+                    <CardDescription>Latest user interactions from the database</CardDescription>
+                  </div>
+                </div>
+                <div className="flex items-center gap-3">
+                  <Badge variant="outline" className="bg-emerald-500/10 text-emerald-600 border-emerald-500/30">
+                    <Radio className="h-3 w-3 mr-1 animate-pulse" />
+                    Realtime Stream
+                  </Badge>
+                  <Button variant="ghost" size="sm" className="gap-1">
+                    {eventsExpanded ? (
+                      <>
+                        <ChevronUp className="h-4 w-4" />
+                        Collapse
+                      </>
+                    ) : (
+                      <>
+                        <ChevronDown className="h-4 w-4" />
+                        Expand ({events?.length || 0})
+                      </>
+                    )}
+                  </Button>
+                </div>
+              </div>
+            </CollapsibleTrigger>
+          </CardHeader>
+          
+          {/* Always show first 5 events */}
+          <CardContent className="pt-0">
+            {isLoading ? (
+              <div className="text-center py-8 text-muted-foreground">Loading events...</div>
+            ) : events?.length === 0 ? (
+              <div className="text-center py-8 text-muted-foreground">No events recorded yet</div>
+            ) : (
+              <>
+                <Table>
+                  <TableHeader>
+                    <TableRow>
+                      <TableHead>Event</TableHead>
+                      <TableHead>Page</TableHead>
+                      <TableHead>Element</TableHead>
+                      <TableHead>Session</TableHead>
+                      <TableHead>Time</TableHead>
+                    </TableRow>
+                  </TableHeader>
+                  <TableBody>
+                    {/* Show first 5 events always */}
+                    {events?.slice(0, 5).map((event, idx) => (
+                      <motion.tr
+                        key={event.id}
+                        initial={idx < 3 ? { opacity: 0, backgroundColor: "hsl(var(--primary) / 0.1)" } : {}}
+                        animate={{ opacity: 1, backgroundColor: "transparent" }}
+                        transition={{ delay: idx * 0.05 }}
+                        className="border-b"
+                      >
+                        <TableCell>
+                          <Badge className={getEventBadge(event.event_type)}>
+                            {event.event_type}
+                          </Badge>
+                        </TableCell>
+                        <TableCell className="max-w-32 truncate">{event.page_url}</TableCell>
+                        <TableCell className="max-w-32 truncate">{event.element_text || "-"}</TableCell>
+                        <TableCell className="font-mono text-xs">{event.session_id?.slice(0, 12)}...</TableCell>
+                        <TableCell className="text-muted-foreground text-sm">
+                          {format(new Date(event.created_at), "HH:mm:ss")}
+                        </TableCell>
+                      </motion.tr>
+                    ))}
+                  </TableBody>
+                </Table>
+
+                {/* Collapsible content for remaining events */}
+                <CollapsibleContent>
+                  <AnimatePresence>
+                    {eventsExpanded && events && events.length > 5 && (
+                      <motion.div
+                        initial={{ opacity: 0, height: 0 }}
+                        animate={{ opacity: 1, height: "auto" }}
+                        exit={{ opacity: 0, height: 0 }}
+                        transition={{ duration: 0.3 }}
+                      >
+                        <Table>
+                          <TableBody>
+                            {events.slice(5, 50).map((event, idx) => (
+                              <motion.tr
+                                key={event.id}
+                                initial={{ opacity: 0, x: -20 }}
+                                animate={{ opacity: 1, x: 0 }}
+                                transition={{ delay: idx * 0.02 }}
+                                className="border-b"
+                              >
+                                <TableCell>
+                                  <Badge className={getEventBadge(event.event_type)}>
+                                    {event.event_type}
+                                  </Badge>
+                                </TableCell>
+                                <TableCell className="max-w-32 truncate">{event.page_url}</TableCell>
+                                <TableCell className="max-w-32 truncate">{event.element_text || "-"}</TableCell>
+                                <TableCell className="font-mono text-xs">{event.session_id?.slice(0, 12)}...</TableCell>
+                                <TableCell className="text-muted-foreground text-sm">
+                                  {format(new Date(event.created_at), "HH:mm:ss")}
+                                </TableCell>
+                              </motion.tr>
+                            ))}
+                          </TableBody>
+                        </Table>
+                      </motion.div>
+                    )}
+                  </AnimatePresence>
+                </CollapsibleContent>
+
+                {events && events.length > 5 && !eventsExpanded && (
+                  <div className="text-center py-3 text-sm text-muted-foreground">
+                    Click "Expand" to see {events.length - 5} more events
+                  </div>
+                )}
+              </>
+            )}
+          </CardContent>
+        </Collapsible>
       </Card>
     </div>
   );
