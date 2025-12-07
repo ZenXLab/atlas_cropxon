@@ -17,6 +17,9 @@ import TenantPerformance from "./TenantPerformance";
 import TenantOpZenix from "./TenantOpZenix";
 import TenantProximaAI from "./TenantProximaAI";
 import TenantSettings from "./TenantSettings";
+import TenantEMS from "./TenantEMS";
+import TenantIdentityAccess from "./TenantIdentityAccess";
+import TenantRiskGovernance from "./TenantRiskGovernance";
 
 // Placeholder for remaining pages
 const PlaceholderPage: React.FC<{ title: string; description: string }> = ({ title, description }) => (
@@ -39,6 +42,22 @@ const PlaceholderPage: React.FC<{ title: string; description: string }> = ({ tit
   </div>
 );
 
+/**
+ * TenantPortal - Tenant Super-Admin Portal
+ * 
+ * Route: /tenant/*
+ * 
+ * This is the Tenant Organization Admin Panel - visible ONLY to the client's 
+ * internal Super Admin / Admin roles. This is where a company configures 
+ * their entire ATLAS workspace.
+ * 
+ * Used for:
+ * - Org structure setup
+ * - HR, Payroll, Finance, Compliance, BGV settings
+ * - Roles & permissions for their team
+ * - API keys & Integrations
+ * - Custom domain & Company-level configurations
+ */
 const TenantPortal: React.FC = () => {
   return (
     <Routes>
@@ -64,14 +83,14 @@ const TenantPortal: React.FC = () => {
         
         {/* Operations */}
         <Route path="projects" element={<TenantProjects />} />
-        <Route path="ems" element={<PlaceholderPage title="EMS / Assets" description="Enterprise asset management and tracking" />} />
+        <Route path="ems" element={<TenantEMS />} />
         <Route path="requests" element={<PlaceholderPage title="My Requests" description="Track your submitted requests and approvals" />} />
         <Route path="notifications" element={<PlaceholderPage title="Notifications" description="View all your notifications" />} />
         
         {/* Compliance & Risk */}
         <Route path="compliance" element={<TenantCompliance />} />
-        <Route path="risk" element={<PlaceholderPage title="Risk & Governance" description="Risk management and audit trails" />} />
-        <Route path="identity" element={<PlaceholderPage title="Identity & Access" description="User roles, permissions, and SSO configuration" />} />
+        <Route path="risk" element={<TenantRiskGovernance />} />
+        <Route path="identity" element={<TenantIdentityAccess />} />
         
         {/* Intelligence & Automation */}
         <Route path="intelligence" element={<TenantProximaAI />} />
