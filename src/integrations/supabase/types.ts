@@ -14,6 +14,203 @@ export type Database = {
   }
   public: {
     Tables: {
+      ab_experiments: {
+        Row: {
+          created_at: string
+          created_by: string | null
+          description: string | null
+          end_date: string | null
+          hypothesis: string | null
+          id: string
+          name: string
+          primary_metric: string
+          secondary_metrics: Json | null
+          start_date: string | null
+          status: string
+          target_audience: string | null
+          traffic_allocation: number | null
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          created_by?: string | null
+          description?: string | null
+          end_date?: string | null
+          hypothesis?: string | null
+          id?: string
+          name: string
+          primary_metric: string
+          secondary_metrics?: Json | null
+          start_date?: string | null
+          status?: string
+          target_audience?: string | null
+          traffic_allocation?: number | null
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          created_by?: string | null
+          description?: string | null
+          end_date?: string | null
+          hypothesis?: string | null
+          id?: string
+          name?: string
+          primary_metric?: string
+          secondary_metrics?: Json | null
+          start_date?: string | null
+          status?: string
+          target_audience?: string | null
+          traffic_allocation?: number | null
+          updated_at?: string
+        }
+        Relationships: []
+      }
+      ab_results: {
+        Row: {
+          confidence_level: number | null
+          conversion_rate: number | null
+          experiment_id: string
+          id: string
+          is_significant: boolean | null
+          metric_name: string
+          metric_value: number
+          recorded_at: string
+          sample_size: number | null
+          variant_id: string
+        }
+        Insert: {
+          confidence_level?: number | null
+          conversion_rate?: number | null
+          experiment_id: string
+          id?: string
+          is_significant?: boolean | null
+          metric_name: string
+          metric_value: number
+          recorded_at?: string
+          sample_size?: number | null
+          variant_id: string
+        }
+        Update: {
+          confidence_level?: number | null
+          conversion_rate?: number | null
+          experiment_id?: string
+          id?: string
+          is_significant?: boolean | null
+          metric_name?: string
+          metric_value?: number
+          recorded_at?: string
+          sample_size?: number | null
+          variant_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "ab_results_experiment_id_fkey"
+            columns: ["experiment_id"]
+            isOneToOne: false
+            referencedRelation: "ab_experiments"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "ab_results_variant_id_fkey"
+            columns: ["variant_id"]
+            isOneToOne: false
+            referencedRelation: "ab_variants"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      ab_user_assignments: {
+        Row: {
+          assigned_at: string
+          conversion_value: number | null
+          converted: boolean | null
+          converted_at: string | null
+          experiment_id: string
+          id: string
+          session_id: string | null
+          user_id: string | null
+          variant_id: string
+        }
+        Insert: {
+          assigned_at?: string
+          conversion_value?: number | null
+          converted?: boolean | null
+          converted_at?: string | null
+          experiment_id: string
+          id?: string
+          session_id?: string | null
+          user_id?: string | null
+          variant_id: string
+        }
+        Update: {
+          assigned_at?: string
+          conversion_value?: number | null
+          converted?: boolean | null
+          converted_at?: string | null
+          experiment_id?: string
+          id?: string
+          session_id?: string | null
+          user_id?: string | null
+          variant_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "ab_user_assignments_experiment_id_fkey"
+            columns: ["experiment_id"]
+            isOneToOne: false
+            referencedRelation: "ab_experiments"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "ab_user_assignments_variant_id_fkey"
+            columns: ["variant_id"]
+            isOneToOne: false
+            referencedRelation: "ab_variants"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      ab_variants: {
+        Row: {
+          created_at: string
+          description: string | null
+          experiment_id: string
+          id: string
+          is_control: boolean | null
+          name: string
+          traffic_weight: number | null
+          variant_config: Json | null
+        }
+        Insert: {
+          created_at?: string
+          description?: string | null
+          experiment_id: string
+          id?: string
+          is_control?: boolean | null
+          name: string
+          traffic_weight?: number | null
+          variant_config?: Json | null
+        }
+        Update: {
+          created_at?: string
+          description?: string | null
+          experiment_id?: string
+          id?: string
+          is_control?: boolean | null
+          name?: string
+          traffic_weight?: number | null
+          variant_config?: Json | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "ab_variants_experiment_id_fkey"
+            columns: ["experiment_id"]
+            isOneToOne: false
+            referencedRelation: "ab_experiments"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       admin_notifications: {
         Row: {
           created_at: string
@@ -71,6 +268,39 @@ export type Database = {
           updated_at?: string
           updated_by?: string | null
           value?: Json
+        }
+        Relationships: []
+      }
+      ai_predictions: {
+        Row: {
+          confidence_score: number | null
+          created_at: string
+          expires_at: string | null
+          id: string
+          input_data: Json
+          model_version: string | null
+          prediction_result: Json
+          prediction_type: string
+        }
+        Insert: {
+          confidence_score?: number | null
+          created_at?: string
+          expires_at?: string | null
+          id?: string
+          input_data: Json
+          model_version?: string | null
+          prediction_result: Json
+          prediction_type: string
+        }
+        Update: {
+          confidence_score?: number | null
+          created_at?: string
+          expires_at?: string | null
+          id?: string
+          input_data?: Json
+          model_version?: string | null
+          prediction_result?: Json
+          prediction_type?: string
         }
         Relationships: []
       }

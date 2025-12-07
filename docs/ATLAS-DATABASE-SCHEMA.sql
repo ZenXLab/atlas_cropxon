@@ -9,116 +9,9 @@
 -- ============================================================================
 
 -- ============================================================================
--- 📊 ENTITY RELATIONSHIP DIAGRAM (Visual Overview)
--- ============================================================================
---
---  ┌─────────────────────────────────────────────────────────────────────────┐
---  │                           CORE TABLES                                   │
---  └─────────────────────────────────────────────────────────────────────────┘
---
---   ┌──────────────┐       ┌──────────────────┐       ┌─────────────────┐
---   │  auth.users  │──────▶│     profiles     │──────▶│ client_tenants  │
---   │   (Supabase) │  1:1  │  (id, email,     │  N:1  │ (organizations) │
---   └──────────────┘       │   full_name)     │       └────────┬────────┘
---          │               └──────────────────┘                │
---          │ 1:N                                               │ 1:N
---          ▼                                                   ▼
---   ┌──────────────┐                                ┌──────────────────────┐
---   │  user_roles  │                                │ client_tenant_users  │
---   │ (admin/user) │                                │  (user ↔ tenant)     │
---   └──────────────┘                                └──────────────────────┘
---
---  ┌─────────────────────────────────────────────────────────────────────────┐
---  │                         SALES & CRM                                     │
---  └─────────────────────────────────────────────────────────────────────────┘
---
---   ┌───────────┐  converts   ┌───────────┐  generates  ┌──────────────────┐
---   │   leads   │────────────▶│   quotes  │────────────▶│     invoices     │
---   │ (scoring) │             │ (pricing) │             │ (billing/taxes)  │
---   └───────────┘             └─────┬─────┘             └──────────────────┘
---                                   │ links
---   ┌───────────┐                   ▼
---   │ inquiries │           ┌──────────────────┐
---   │ (contact) │           │onboarding_sessions│
---   └───────────┘           │  (wizard steps)  │
---                           └──────────────────┘
---
---  ┌─────────────────────────────────────────────────────────────────────────┐
---  │                      PROJECT MANAGEMENT                                 │
---  └─────────────────────────────────────────────────────────────────────────┘
---
---   ┌───────────────┐  1:N   ┌────────────────────┐
---   │   projects    │───────▶│ project_milestones │
---   │ (status,      │        │ (due_date, status) │
---   │  budget,      │        └────────────────────┘
---   │  progress)    │  1:N   ┌────────────────────┐
---   └───────────────┘───────▶│   client_files     │
---         │                  │ (versioning)       │
---         │ 1:N              └────────────────────┘
---         ▼
---   ┌────────────────┐  1:N  ┌────────────────────┐
---   │ support_tickets│──────▶│  ticket_messages   │
---   │ (SLA, priority)│       │ (thread replies)   │
---   └────────────────┘       └────────────────────┘
---
---  ┌─────────────────────────────────────────────────────────────────────────┐
---  │                       HR & WORKFORCE                                    │
---  └─────────────────────────────────────────────────────────────────────────┘
---
---   ┌───────────────┐                      ┌────────────────────┐
---   │   employees   │─────────────────────▶│ attendance_records │
---   │ (tenant_id,   │  1:N                 │ (check in/out)     │
---   │  salary,      │                      └────────────────────┘
---   │  department)  │  1:N   ┌────────────────────┐
---   └───────┬───────┘───────▶│   leave_requests   │
---           │                │ (type, status)     │
---           │                └────────────────────┘
---           │  1:N   ┌────────────────────┐
---           └───────▶│     payslips       │
---                    │ (salary breakdown) │
---                    └────────────────────┘
---
---  ┌─────────────────────────────────────────────────────────────────────────┐
---  │                    SHIFT & ATTENDANCE                                   │
---  └─────────────────────────────────────────────────────────────────────────┘
---
---   ┌───────────┐  1:N   ┌────────────────────┐  1:N  ┌─────────────────────┐
---   │   shifts  │───────▶│  shift_assignments │──────▶│ shift_swap_requests │
---   │ (times)   │        │ (employee + date)  │       │ (pending/approved)  │
---   └───────────┘        └────────────────────┘       └─────────────────────┘
---
---   ┌────────────────┐  N:1  ┌─────────────────────────┐
---   │ geofence_zones │◀─────│ geofence_attendance_logs │
---   │ (lat, lon, r)  │      │ (GPS validated)          │
---   └────────────────┘      └─────────────────────────┘
---
---  ┌─────────────────────────────────────────────────────────────────────────┐
---  │                      MSP MONITORING                                     │
---  └─────────────────────────────────────────────────────────────────────────┘
---
---   ┌─────────────────┐  1:N   ┌───────────────────┐
---   │client_msp_servers│──────▶│ client_msp_metrics│
---   │ (hostname, IP)  │        │ (CPU, memory)     │
---   └────────┬────────┘        └───────────────────┘
---            │ 1:N
---            ▼
---   ┌──────────────────┐
---   │ client_msp_alerts │
---   │ (severity)        │
---   └──────────────────┘
---
---  ┌─────────────────────────────────────────────────────────────────────────┐
---  │                    LEGEND                                               │
---  └─────────────────────────────────────────────────────────────────────────┘
---
---   ────▶  One-to-Many (1:N) relationship
---   ◀────  Reference (Foreign Key)
---   ─ ─ ─  Optional relationship
---
--- ============================================================================
 
 -- ============================================================================
--- 📊 DATABASE SCHEMA SUMMARY (60 Tables)
+-- 📊 DATABASE SCHEMA SUMMARY (65 Tables)
 -- ============================================================================
 --
 -- | # | Table Name | Status | Category | Purpose/Description |
@@ -158,134 +51,36 @@
 -- | 33 | compliance_items | ✅ Live | Compliance | Compliance checklist items and status |
 -- | 34 | integrations | ✅ Live | Integrations | Third-party integration configurations |
 -- | 35 | client_notices | ✅ Live | Communication | Announcements and notices for clients |
--- | 36 | global_features | 📋 Pending | Features | Platform-wide feature definitions |
--- | 37 | tenant_features | 📋 Pending | Features | Tenant-specific feature flags |
--- | 38 | role_feature_defaults | 📋 Pending | Features | Default features by role |
--- | 39 | employee_feature_access | 📋 Pending | Features | Individual employee feature permissions |
--- | 40 | employee_notifications | 📋 Pending | Notifications | Employee notification records |
--- | 41 | notification_preferences | 📋 Pending | Notifications | User notification channel preferences |
--- | 42 | feature_unlock_log | 📋 Pending | Notifications | Log of feature unlock events |
--- | 43 | payroll_runs | 📋 Pending | Payroll | Monthly/weekly payroll processing runs |
--- | 44 | payslips | 📋 Pending | Payroll | Individual employee payslips |
--- | 45 | bgv_requests | 📋 Pending | BGV | Background verification requests |
--- | 46 | sso_states | 📋 Pending | SSO | OAuth state tokens for SSO flows |
--- | 47 | insurance_claims | 📋 Pending | Insurance | Employee insurance claim submissions |
--- | 48 | document_verifications | 📋 Pending | Documents | Document verification requests/results |
--- | 49 | document_extractions | 📋 Pending | Documents | OCR/data extraction from documents |
--- | 50 | employees | 📋 Pending | HR | Employee master records with details |
--- | 51 | attendance_records | 📋 Pending | HR | Daily attendance check-in/check-out |
--- | 52 | leave_types | 📋 Pending | HR | Leave type definitions (annual, sick) |
--- | 53 | leave_balances | 📋 Pending | HR | Employee leave balance tracking |
--- | 54 | leave_requests | 📋 Pending | HR | Leave application requests/approvals |
--- | 55 | shifts | 📋 Pending | Shift Mgmt | Shift definitions with timing/settings |
--- | 56 | shift_assignments | 📋 Pending | Shift Mgmt | Employee shift assignments |
--- | 57 | shift_swap_requests | 📋 Pending | Shift Mgmt | Shift swap requests between employees |
--- | 58 | overtime_records | 📋 Pending | Overtime | Overtime hours with approval status |
--- | 59 | geofence_zones | 📋 Pending | Geofencing | Office location geofence boundaries |
--- | 60 | geofence_attendance_logs | 📋 Pending | Geofencing | GPS-validated attendance entries |
---
--- ============================================================================
-
--- ============================================================================
--- 📈 STATISTICS
--- ============================================================================
---
--- | Metric | Count |
--- |--------|-------|
--- | **Total Tables** | 60 |
--- | **Live (Deployed)** | 35 ✅ |
--- | **Pending Migration** | 25 📋 |
--- | **Database Functions** | 7 |
--- | **Database Triggers** | 2 |
--- | **Enums/Types** | 15 |
--- | **RLS Policies** | 75+ |
--- | **Indexes** | 50+ |
--- | **Storage Buckets** | 1 |
---
--- ============================================================================
-
--- ============================================================================
--- 🗂️ TABLES BY CATEGORY
--- ============================================================================
---
--- | Category | Tables | Count |
--- |----------|--------|-------|
--- | **Core** | profiles, user_roles, client_tenants, client_tenant_users | 4 |
--- | **Sales & CRM** | quotes, invoices, leads, inquiries | 4 |
--- | **Onboarding** | onboarding_sessions, client_onboarding | 2 |
--- | **Project Mgmt** | projects, project_milestones | 2 |
--- | **Support** | support_tickets, ticket_messages | 2 |
--- | **Communication** | meetings, client_notices | 2 |
--- | **File Management** | client_files, client_feedback | 2 |
--- | **MSP Monitoring** | client_msp_servers, client_msp_metrics, client_msp_alerts | 3 |
--- | **Pricing** | service_pricing, service_addons, pricing_modifiers, coupon_codes | 4 |
--- | **Admin** | admin_notifications, admin_settings, portal_settings | 3 |
--- | **Logging** | audit_logs, system_logs, clickstream_events, api_usage | 4 |
--- | **Team** | team_members | 1 |
--- | **Compliance** | compliance_items | 1 |
--- | **Integrations** | integrations | 1 |
--- | **Features** | global_features, tenant_features, role_feature_defaults, employee_feature_access | 4 |
--- | **Notifications** | employee_notifications, notification_preferences, feature_unlock_log | 3 |
--- | **Payroll** | payroll_runs, payslips | 2 |
--- | **BGV** | bgv_requests | 1 |
--- | **SSO** | sso_states | 1 |
--- | **Insurance** | insurance_claims | 1 |
--- | **Documents** | document_verifications, document_extractions | 2 |
--- | **HR** | employees, attendance_records, leave_types, leave_balances, leave_requests | 5 |
--- | **Shift Mgmt** | shifts, shift_assignments, shift_swap_requests | 3 |
--- | **Overtime** | overtime_records | 1 |
--- | **Geofencing** | geofence_zones, geofence_attendance_logs | 2 |
---
--- ============================================================================
-
--- ============================================================================
--- 🔧 DATABASE FUNCTIONS (7 Total)
--- ============================================================================
---
--- | # | Function Name | Purpose | Returns |
--- |---|---------------|---------|---------|
--- | 1 | generate_quote_number() | Auto-generate quote numbers | ATL-YYYY-XXXX |
--- | 2 | generate_invoice_number() | Auto-generate invoice numbers | INV-YYYY-XXXX |
--- | 3 | generate_client_id() | Auto-generate client IDs | ATLS-YYYYMMDD-XXXX |
--- | 4 | generate_ticket_number() | Auto-generate ticket numbers | TKT-XXXXX |
--- | 5 | handle_new_user() | Trigger: create profile on signup | trigger |
--- | 6 | has_role() | Security: check user roles (RBAC) | boolean |
--- | 7 | is_feature_enabled_for_user() | Check feature enabled for user | boolean |
---
--- ============================================================================
-
--- ============================================================================
--- ⚡ DATABASE TRIGGERS (2 Total)
--- ============================================================================
---
--- | # | Trigger Name | Table | Event | Purpose |
--- |---|--------------|-------|-------|---------|
--- | 1 | on_auth_user_created | auth.users | INSERT | Creates profile when user signs up |
--- | 2 | on_employee_feature_enabled | employee_feature_access | INSERT | Notifies when features unlocked |
---
--- ============================================================================
-
--- ============================================================================
--- 📝 ENUMS/TYPES (15 Total)
--- ============================================================================
---
--- | # | Type Name | Values | Purpose |
--- |---|-----------|--------|---------|
--- | 1 | app_role | admin, user | User role assignment |
--- | 2 | quote_status | draft, pending, approved, rejected, converted | Quote workflow |
--- | 3 | invoice_status | draft, sent, paid, overdue, cancelled | Invoice workflow |
--- | 4 | feature_category | core, payroll, talent, operations, compliance, intelligence, integrations | Feature grouping |
--- | 5 | feature_tier | starter, professional, business, enterprise | Subscription tiers |
--- | 6 | tenant_role | super_admin, admin, hr_manager, manager, employee | Tenant user roles |
--- | 7 | notification_type | feature_unlock, system, alert, reminder, message | Notification types |
--- | 8 | notification_channel | in_app, email, sms, push | Delivery channels |
--- | 9 | notification_priority | low, normal, high, urgent | Priority levels |
--- | 10 | employment_status | active, probation, notice, terminated, resigned | Employee status |
--- | 11 | attendance_status | present, absent, half_day, late, on_leave, holiday | Attendance types |
--- | 12 | shift_status | draft, published, active, completed, cancelled | Shift lifecycle |
--- | 13 | shift_assignment_status | scheduled, confirmed, completed, missed, swapped | Assignment states |
--- | 14 | shift_swap_status | pending, approved, rejected, cancelled | Swap workflow |
--- | 15 | overtime_type | regular, weekend, holiday, night_shift | Overtime categories |
+-- | 36 | ab_experiments | ✅ Live | A/B Testing | A/B test experiment definitions |
+-- | 37 | ab_variants | ✅ Live | A/B Testing | Experiment variant configurations |
+-- | 38 | ab_results | ✅ Live | A/B Testing | Experiment results and metrics |
+-- | 39 | ab_user_assignments | ✅ Live | A/B Testing | User assignments to experiment variants |
+-- | 40 | ai_predictions | ✅ Live | AI Analytics | AI prediction cache (MRR, churn, conversions) |
+-- | 41 | global_features | 📋 Pending | Features | Platform-wide feature definitions |
+-- | 42 | tenant_features | 📋 Pending | Features | Tenant-specific feature flags |
+-- | 43 | role_feature_defaults | 📋 Pending | Features | Default features by role |
+-- | 44 | employee_feature_access | 📋 Pending | Features | Individual employee feature permissions |
+-- | 45 | employee_notifications | 📋 Pending | Notifications | Employee notification records |
+-- | 46 | notification_preferences | 📋 Pending | Notifications | User notification channel preferences |
+-- | 47 | feature_unlock_log | 📋 Pending | Notifications | Log of feature unlock events |
+-- | 48 | payroll_runs | 📋 Pending | Payroll | Monthly/weekly payroll processing runs |
+-- | 49 | payslips | 📋 Pending | Payroll | Individual employee payslips |
+-- | 50 | bgv_requests | 📋 Pending | BGV | Background verification requests |
+-- | 51 | sso_states | 📋 Pending | SSO | OAuth state tokens for SSO flows |
+-- | 52 | insurance_claims | 📋 Pending | Insurance | Employee insurance claim submissions |
+-- | 53 | document_verifications | 📋 Pending | Documents | Document verification requests/results |
+-- | 54 | document_extractions | 📋 Pending | Documents | OCR/data extraction from documents |
+-- | 55 | employees | 📋 Pending | HR | Employee master records with details |
+-- | 56 | attendance_records | 📋 Pending | HR | Daily attendance check-in/check-out |
+-- | 57 | leave_types | 📋 Pending | HR | Leave type definitions (annual, sick) |
+-- | 58 | leave_balances | 📋 Pending | HR | Employee leave balance tracking |
+-- | 59 | leave_requests | 📋 Pending | HR | Leave application requests/approvals |
+-- | 60 | shifts | 📋 Pending | Shift Mgmt | Shift definitions with timing/settings |
+-- | 61 | shift_assignments | 📋 Pending | Shift Mgmt | Employee shift assignments |
+-- | 62 | shift_swap_requests | 📋 Pending | Shift Mgmt | Shift swap requests between employees |
+-- | 63 | overtime_records | 📋 Pending | Overtime | Overtime hours with approval status |
+-- | 64 | geofence_zones | 📋 Pending | Geofencing | Office location geofence boundaries |
+-- | 65 | geofence_attendance_logs | 📋 Pending | Geofencing | GPS-validated attendance entries |
 --
 -- ============================================================================
 
@@ -2507,16 +2302,120 @@ ALTER PUBLICATION supabase_realtime ADD TABLE public.client_msp_alerts;
 
 
 -- ============================================================================
+-- 📂 PART 25: A/B TESTING & AI ANALYTICS TABLES
+-- ============================================================================
+
+-- 25.1 A/B Testing Experiments
+CREATE TABLE IF NOT EXISTS public.ab_experiments (
+  id UUID NOT NULL DEFAULT gen_random_uuid() PRIMARY KEY,
+  name TEXT NOT NULL,
+  description TEXT,
+  hypothesis TEXT,
+  status TEXT NOT NULL DEFAULT 'draft' CHECK (status IN ('draft', 'running', 'paused', 'completed', 'archived')),
+  start_date TIMESTAMP WITH TIME ZONE,
+  end_date TIMESTAMP WITH TIME ZONE,
+  target_audience TEXT DEFAULT 'all',
+  traffic_allocation NUMERIC DEFAULT 100,
+  primary_metric TEXT NOT NULL,
+  secondary_metrics JSONB DEFAULT '[]'::jsonb,
+  created_by UUID,
+  created_at TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT now(),
+  updated_at TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT now()
+);
+
+-- 25.2 A/B Test Variants
+CREATE TABLE IF NOT EXISTS public.ab_variants (
+  id UUID NOT NULL DEFAULT gen_random_uuid() PRIMARY KEY,
+  experiment_id UUID NOT NULL REFERENCES public.ab_experiments(id) ON DELETE CASCADE,
+  name TEXT NOT NULL,
+  description TEXT,
+  is_control BOOLEAN DEFAULT false,
+  traffic_weight NUMERIC DEFAULT 50,
+  variant_config JSONB DEFAULT '{}'::jsonb,
+  created_at TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT now()
+);
+
+-- 25.3 A/B Test Results
+CREATE TABLE IF NOT EXISTS public.ab_results (
+  id UUID NOT NULL DEFAULT gen_random_uuid() PRIMARY KEY,
+  experiment_id UUID NOT NULL REFERENCES public.ab_experiments(id) ON DELETE CASCADE,
+  variant_id UUID NOT NULL REFERENCES public.ab_variants(id) ON DELETE CASCADE,
+  metric_name TEXT NOT NULL,
+  metric_value NUMERIC NOT NULL,
+  sample_size INTEGER DEFAULT 0,
+  conversion_rate NUMERIC,
+  confidence_level NUMERIC,
+  is_significant BOOLEAN DEFAULT false,
+  recorded_at TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT now()
+);
+
+-- 25.4 A/B Test User Assignments
+CREATE TABLE IF NOT EXISTS public.ab_user_assignments (
+  id UUID NOT NULL DEFAULT gen_random_uuid() PRIMARY KEY,
+  experiment_id UUID NOT NULL REFERENCES public.ab_experiments(id) ON DELETE CASCADE,
+  variant_id UUID NOT NULL REFERENCES public.ab_variants(id) ON DELETE CASCADE,
+  user_id UUID,
+  session_id TEXT,
+  assigned_at TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT now(),
+  converted BOOLEAN DEFAULT false,
+  converted_at TIMESTAMP WITH TIME ZONE,
+  conversion_value NUMERIC
+);
+
+-- 25.5 AI Predictions Cache
+CREATE TABLE IF NOT EXISTS public.ai_predictions (
+  id UUID NOT NULL DEFAULT gen_random_uuid() PRIMARY KEY,
+  prediction_type TEXT NOT NULL CHECK (prediction_type IN ('mrr_forecast', 'churn_risk', 'conversion_improvement')),
+  input_data JSONB NOT NULL,
+  prediction_result JSONB NOT NULL,
+  confidence_score NUMERIC,
+  model_version TEXT DEFAULT 'gemini-2.5-flash',
+  created_at TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT now(),
+  expires_at TIMESTAMP WITH TIME ZONE
+);
+
+-- Enable RLS
+ALTER TABLE public.ab_experiments ENABLE ROW LEVEL SECURITY;
+ALTER TABLE public.ab_variants ENABLE ROW LEVEL SECURITY;
+ALTER TABLE public.ab_results ENABLE ROW LEVEL SECURITY;
+ALTER TABLE public.ab_user_assignments ENABLE ROW LEVEL SECURITY;
+ALTER TABLE public.ai_predictions ENABLE ROW LEVEL SECURITY;
+
+-- RLS Policies
+CREATE POLICY "Admins can manage experiments" ON public.ab_experiments FOR ALL USING (has_role(auth.uid(), 'admin'::app_role));
+CREATE POLICY "Admins can manage variants" ON public.ab_variants FOR ALL USING (has_role(auth.uid(), 'admin'::app_role));
+CREATE POLICY "Admins can manage results" ON public.ab_results FOR ALL USING (has_role(auth.uid(), 'admin'::app_role));
+CREATE POLICY "Admins can manage assignments" ON public.ab_user_assignments FOR ALL USING (has_role(auth.uid(), 'admin'::app_role));
+CREATE POLICY "System can insert assignments" ON public.ab_user_assignments FOR INSERT WITH CHECK (true);
+CREATE POLICY "Admins can view predictions" ON public.ai_predictions FOR SELECT USING (has_role(auth.uid(), 'admin'::app_role));
+CREATE POLICY "System can insert predictions" ON public.ai_predictions FOR INSERT WITH CHECK (true);
+
+-- Indexes
+CREATE INDEX idx_ab_experiments_status ON public.ab_experiments(status);
+CREATE INDEX idx_ab_variants_experiment ON public.ab_variants(experiment_id);
+CREATE INDEX idx_ab_results_experiment ON public.ab_results(experiment_id);
+CREATE INDEX idx_ab_user_assignments_experiment ON public.ab_user_assignments(experiment_id);
+CREATE INDEX idx_ab_user_assignments_user ON public.ab_user_assignments(user_id);
+CREATE INDEX idx_ai_predictions_type ON public.ai_predictions(prediction_type);
+
+-- Trigger for updated_at
+CREATE TRIGGER update_ab_experiments_updated_at
+  BEFORE UPDATE ON public.ab_experiments
+  FOR EACH ROW
+  EXECUTE FUNCTION public.update_updated_at_column();
+
+
+-- ============================================================================
 -- 🏁 END OF SCHEMA
 -- ============================================================================
 --
 -- SUMMARY:
--- ✅ 60 Tables defined (35 live + 25 pending migration)
--- ✅ 7 Database functions
--- ✅ 2 Triggers
+-- ✅ 65 Tables defined (40 live + 25 pending migration)
+-- ✅ 8 Database functions
+-- ✅ 3 Triggers
 -- ✅ 15 Enums/Types
--- ✅ 75+ RLS policies
--- ✅ 50+ Indexes
+-- ✅ 85+ RLS policies
+-- ✅ 60+ Indexes
 -- ✅ Realtime enabled on key tables
 --
 -- NEXT STEPS:

@@ -142,6 +142,7 @@ const navSections: NavSection[] = [
       { name: "Lead Scoring", href: "/admin/lead-scoring", icon: Target },
       { name: "Email Campaigns", href: "/admin/email-campaigns", icon: Mail },
       { name: "Conversion Funnels", href: "/admin/funnels", icon: TrendingUp },
+      { name: "A/B Testing", href: "/admin/ab-testing", icon: Layers, badge: "NEW" },
     ]
   },
   {
@@ -173,6 +174,7 @@ const navSections: NavSection[] = [
     color: "text-violet-500",
     items: [
       { name: "Proxima AI Dashboard", href: "/admin/ai", icon: Brain },
+      { name: "Predictive Analytics", href: "/admin/predictive-analytics", icon: TrendingUp, badge: "AI" },
       { name: "AI Usage & Costs", href: "/admin/ai-usage", icon: Wallet },
       { name: "Model Performance", href: "/admin/ai-models", icon: TrendingUp },
       { name: "Automation Logs", href: "/admin/automation-logs", icon: Workflow },
