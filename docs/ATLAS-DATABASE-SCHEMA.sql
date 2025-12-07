@@ -34,23 +34,26 @@
 -- ATLAS DATABASE SCHEMA STATISTICS
 -- ============================================================================
 -- 
--- LAST UPDATED: December 7, 2025 @ 14:30 UTC
+-- LAST UPDATED: December 7, 2025 @ 16:45 UTC
 --
 -- COMPONENT COUNTS:
---   Database Tables: 46 (35 core + 7 operational + 4 HR module)
+--   Database Tables: 52 (35 core + 7 operational + 5 HR module + 5 shift/geofencing)
 --   Database Functions: 7
 --   Database Triggers: 2
 --   Edge Functions: 15 (6 deployed + 9 documented)
 --   Storage Buckets: 1
 --   Secrets Configured: 6
---   Enums/Types: 12 (10 existing + 2 new HR enums)
---   RLS Policies: 60+
---   Indexes: 35+
+--   Enums/Types: 15 (10 existing + 2 HR + 3 new shift/geofencing)
+--   RLS Policies: 75+
+--   Indexes: 50+
 --
--- NEW TABLES ADDED (December 7, 2025):
---   - payroll_runs, payslips, bgv_requests, sso_states
---   - insurance_claims, document_verifications, document_extractions
---   - employees, attendance_records, leave_requests, leave_balances
+-- NEW TABLES ADDED (December 7, 2025 @ 16:45 UTC):
+--   Operational: payroll_runs, payslips, bgv_requests, sso_states
+--   Claims: insurance_claims, document_verifications, document_extractions
+--   HR: employees, attendance_records, leave_requests, leave_balances, leave_types
+--   Shifts: shifts, shift_assignments, shift_swap_requests
+--   Overtime: overtime_records
+--   Geofencing: geofence_zones, geofence_attendance_logs
 --
 -- ============================================================================
 
@@ -2160,7 +2163,373 @@ ALTER PUBLICATION supabase_realtime ADD TABLE public.leave_requests;
 
 
 -- ============================================================================
+-- PART 25: SHIFT MANAGEMENT ENUMS
+-- ============================================================================
+
+-- Shift status
+CREATE TYPE public.shift_status AS ENUM (
+    'active',         -- Currently active shift
+    'inactive',       -- Disabled shift
+    'archived'        -- No longer in use
+);
+
+-- Shift assignment status
+CREATE TYPE public.shift_assignment_status AS ENUM (
+    'scheduled',      -- Assigned to employee
+    'in_progress',    -- Employee currently working
+    'completed',      -- Shift completed
+    'missed',         -- Employee didn't show up
+    'cancelled'       -- Assignment cancelled
+);
+
+-- Shift swap request status
+CREATE TYPE public.shift_swap_status AS ENUM (
+    'pending',        -- Awaiting approval
+    'approved',       -- Approved by manager
+    'rejected',       -- Rejected
+    'cancelled',      -- Cancelled by requester
+    'completed'       -- Swap executed
+);
+
+
+-- ============================================================================
+-- PART 26: SHIFT MANAGEMENT TABLES
+-- ============================================================================
+
+-- Shifts table - defines available shifts
+CREATE TABLE public.shifts (
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    tenant_id UUID NOT NULL REFERENCES public.client_tenants(id) ON DELETE CASCADE,
+    name TEXT NOT NULL,                                  -- e.g., "Morning Shift", "Night Shift"
+    code TEXT,                                           -- e.g., "MS", "NS"
+    description TEXT,
+    start_time TIME NOT NULL,                            -- Shift start time
+    end_time TIME NOT NULL,                              -- Shift end time
+    break_duration_minutes INTEGER DEFAULT 0,            -- Break duration in minutes
+    grace_period_minutes INTEGER DEFAULT 15,             -- Late arrival grace period
+    early_checkout_minutes INTEGER DEFAULT 15,           -- Early checkout allowed
+    is_overnight BOOLEAN DEFAULT false,                  -- Shift crosses midnight
+    is_flexible BOOLEAN DEFAULT false,                   -- Flexible timing allowed
+    min_hours DECIMAL(4,2),                              -- Minimum hours required
+    max_hours DECIMAL(4,2),                              -- Maximum hours allowed
+    color TEXT DEFAULT '#3B82F6',                        -- Display color for UI
+    applicable_days JSONB DEFAULT '["monday","tuesday","wednesday","thursday","friday"]',
+    status shift_status DEFAULT 'active',
+    created_at TIMESTAMPTZ NOT NULL DEFAULT now(),
+    updated_at TIMESTAMPTZ NOT NULL DEFAULT now(),
+    created_by UUID REFERENCES auth.users(id)
+);
+
+-- Shift Assignments - assigns employees to shifts
+CREATE TABLE public.shift_assignments (
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    tenant_id UUID NOT NULL REFERENCES public.client_tenants(id) ON DELETE CASCADE,
+    shift_id UUID NOT NULL REFERENCES public.shifts(id) ON DELETE CASCADE,
+    employee_id UUID NOT NULL REFERENCES public.employees(id) ON DELETE CASCADE,
+    assignment_date DATE NOT NULL,                       -- Date of assignment
+    actual_start_time TIMESTAMPTZ,                       -- When employee actually started
+    actual_end_time TIMESTAMPTZ,                         -- When employee actually ended
+    status shift_assignment_status DEFAULT 'scheduled',
+    hours_worked DECIMAL(5,2),                           -- Total hours worked
+    overtime_hours DECIMAL(5,2) DEFAULT 0,               -- Overtime hours
+    notes TEXT,
+    assigned_by UUID REFERENCES auth.users(id),
+    created_at TIMESTAMPTZ NOT NULL DEFAULT now(),
+    updated_at TIMESTAMPTZ NOT NULL DEFAULT now(),
+    UNIQUE(shift_id, employee_id, assignment_date)
+);
+
+-- Shift Swap Requests - employee requests to swap shifts
+CREATE TABLE public.shift_swap_requests (
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    tenant_id UUID NOT NULL REFERENCES public.client_tenants(id) ON DELETE CASCADE,
+    requester_id UUID NOT NULL REFERENCES public.employees(id) ON DELETE CASCADE,
+    requester_assignment_id UUID NOT NULL REFERENCES public.shift_assignments(id) ON DELETE CASCADE,
+    target_employee_id UUID REFERENCES public.employees(id),  -- Who to swap with (optional)
+    target_assignment_id UUID REFERENCES public.shift_assignments(id),  -- Their assignment to take
+    reason TEXT NOT NULL,
+    status shift_swap_status DEFAULT 'pending',
+    approved_by UUID REFERENCES auth.users(id),
+    approved_at TIMESTAMPTZ,
+    rejection_reason TEXT,
+    created_at TIMESTAMPTZ NOT NULL DEFAULT now(),
+    updated_at TIMESTAMPTZ NOT NULL DEFAULT now()
+);
+
+
+-- ============================================================================
+-- PART 27: OVERTIME TRACKING TABLE
+-- ============================================================================
+
+-- Overtime type enum
+CREATE TYPE public.overtime_type AS ENUM (
+    'regular',        -- Standard 1.5x overtime
+    'double',         -- 2x overtime (holidays, etc.)
+    'special',        -- Special rates
+    'comp_off'        -- Compensatory off instead of payment
+);
+
+-- Overtime Records table
+CREATE TABLE public.overtime_records (
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    tenant_id UUID NOT NULL REFERENCES public.client_tenants(id) ON DELETE CASCADE,
+    employee_id UUID NOT NULL REFERENCES public.employees(id) ON DELETE CASCADE,
+    attendance_record_id UUID REFERENCES public.attendance_records(id),
+    shift_assignment_id UUID REFERENCES public.shift_assignments(id),
+    overtime_date DATE NOT NULL,
+    overtime_type overtime_type DEFAULT 'regular',
+    hours DECIMAL(5,2) NOT NULL,                         -- Overtime hours
+    rate_multiplier DECIMAL(3,2) DEFAULT 1.5,            -- Pay multiplier (1.5x, 2x, etc.)
+    pre_approved BOOLEAN DEFAULT false,                   -- Was overtime pre-approved?
+    approved_by UUID REFERENCES auth.users(id),
+    approved_at TIMESTAMPTZ,
+    status TEXT DEFAULT 'pending' CHECK (status IN ('pending', 'approved', 'rejected', 'processed')),
+    rejection_reason TEXT,
+    payroll_processed BOOLEAN DEFAULT false,              -- Added to payroll?
+    payroll_run_id UUID REFERENCES public.payroll_runs(id),
+    notes TEXT,
+    created_at TIMESTAMPTZ NOT NULL DEFAULT now(),
+    updated_at TIMESTAMPTZ NOT NULL DEFAULT now()
+);
+
+
+-- ============================================================================
+-- PART 28: GEOFENCING TABLES
+-- ============================================================================
+
+-- Geofence zone type enum
+CREATE TYPE public.geofence_zone_type AS ENUM (
+    'office',         -- Main office location
+    'branch',         -- Branch office
+    'client_site',    -- Client location
+    'work_from_home', -- Registered WFH address
+    'field',          -- Field work zone
+    'restricted'      -- Restricted area
+);
+
+-- Geofence Zones - defines geographic boundaries for attendance
+CREATE TABLE public.geofence_zones (
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    tenant_id UUID NOT NULL REFERENCES public.client_tenants(id) ON DELETE CASCADE,
+    name TEXT NOT NULL,                                   -- Zone name
+    zone_type geofence_zone_type DEFAULT 'office',
+    address TEXT,                                         -- Physical address
+    latitude DECIMAL(10,8) NOT NULL,                      -- Center latitude
+    longitude DECIMAL(11,8) NOT NULL,                     -- Center longitude
+    radius_meters INTEGER NOT NULL DEFAULT 100,           -- Geofence radius in meters
+    polygon_coordinates JSONB,                            -- For complex polygon shapes
+    is_active BOOLEAN DEFAULT true,
+    is_primary BOOLEAN DEFAULT false,                     -- Primary office location
+    allowed_ip_ranges JSONB DEFAULT '[]',                 -- Allowed IP ranges for WiFi-based location
+    wifi_ssids JSONB DEFAULT '[]',                        -- Allowed WiFi network names
+    timezone TEXT DEFAULT 'Asia/Kolkata',
+    working_hours JSONB DEFAULT '{"start": "09:00", "end": "18:00"}',
+    applicable_departments JSONB DEFAULT '[]',            -- Empty means all departments
+    applicable_designations JSONB DEFAULT '[]',           -- Empty means all designations
+    metadata JSONB DEFAULT '{}',
+    created_at TIMESTAMPTZ NOT NULL DEFAULT now(),
+    updated_at TIMESTAMPTZ NOT NULL DEFAULT now(),
+    created_by UUID REFERENCES auth.users(id)
+);
+
+-- Geofence Attendance Logs - records location-based attendance attempts
+CREATE TABLE public.geofence_attendance_logs (
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    tenant_id UUID NOT NULL REFERENCES public.client_tenants(id) ON DELETE CASCADE,
+    employee_id UUID NOT NULL REFERENCES public.employees(id) ON DELETE CASCADE,
+    attendance_record_id UUID REFERENCES public.attendance_records(id),
+    geofence_zone_id UUID REFERENCES public.geofence_zones(id),
+    action_type TEXT NOT NULL CHECK (action_type IN ('check_in', 'check_out', 'location_update')),
+    latitude DECIMAL(10,8) NOT NULL,                      -- Employee's latitude
+    longitude DECIMAL(11,8) NOT NULL,                     -- Employee's longitude
+    accuracy_meters DECIMAL(8,2),                         -- GPS accuracy
+    altitude_meters DECIMAL(10,2),                        -- Altitude if available
+    is_within_geofence BOOLEAN NOT NULL DEFAULT false,    -- Was employee within allowed zone?
+    distance_from_zone_meters DECIMAL(10,2),              -- Distance from nearest zone center
+    matched_zone_id UUID REFERENCES public.geofence_zones(id),  -- Which zone matched (if any)
+    device_info JSONB DEFAULT '{}',                       -- Device details (model, OS, etc.)
+    ip_address INET,                                      -- IP address for WiFi validation
+    wifi_ssid TEXT,                                       -- Connected WiFi network
+    is_mocked_location BOOLEAN DEFAULT false,             -- Detected fake GPS?
+    verification_status TEXT DEFAULT 'verified' CHECK (verification_status IN ('verified', 'suspicious', 'rejected', 'manual_override')),
+    verification_notes TEXT,
+    photo_url TEXT,                                       -- Selfie photo for verification
+    created_at TIMESTAMPTZ NOT NULL DEFAULT now()
+);
+
+
+-- ============================================================================
+-- PART 29: SHIFT & GEOFENCING - ENABLE RLS
+-- ============================================================================
+
+ALTER TABLE public.shifts ENABLE ROW LEVEL SECURITY;
+ALTER TABLE public.shift_assignments ENABLE ROW LEVEL SECURITY;
+ALTER TABLE public.shift_swap_requests ENABLE ROW LEVEL SECURITY;
+ALTER TABLE public.overtime_records ENABLE ROW LEVEL SECURITY;
+ALTER TABLE public.geofence_zones ENABLE ROW LEVEL SECURITY;
+ALTER TABLE public.geofence_attendance_logs ENABLE ROW LEVEL SECURITY;
+
+-- Shifts Policies
+CREATE POLICY "Admins can manage shifts" ON public.shifts
+    FOR ALL USING (has_role(auth.uid(), 'admin'));
+
+CREATE POLICY "Employees can view shifts" ON public.shifts
+    FOR SELECT USING (tenant_id IN (
+        SELECT tenant_id FROM public.client_tenant_users WHERE user_id = auth.uid()
+    ));
+
+CREATE POLICY "Tenant admins can manage shifts" ON public.shifts
+    FOR ALL USING (tenant_id IN (
+        SELECT tenant_id FROM public.client_tenant_users 
+        WHERE user_id = auth.uid() AND role IN ('super_admin', 'admin')
+    ));
+
+-- Shift Assignments Policies
+CREATE POLICY "Admins can manage shift assignments" ON public.shift_assignments
+    FOR ALL USING (has_role(auth.uid(), 'admin'));
+
+CREATE POLICY "Employees can view own assignments" ON public.shift_assignments
+    FOR SELECT USING (employee_id IN (
+        SELECT id FROM public.employees WHERE user_id = auth.uid()
+    ));
+
+CREATE POLICY "Tenant admins can manage assignments" ON public.shift_assignments
+    FOR ALL USING (tenant_id IN (
+        SELECT tenant_id FROM public.client_tenant_users 
+        WHERE user_id = auth.uid() AND role IN ('super_admin', 'admin')
+    ));
+
+-- Shift Swap Requests Policies
+CREATE POLICY "Admins can manage swap requests" ON public.shift_swap_requests
+    FOR ALL USING (has_role(auth.uid(), 'admin'));
+
+CREATE POLICY "Employees can view own swap requests" ON public.shift_swap_requests
+    FOR SELECT USING (requester_id IN (
+        SELECT id FROM public.employees WHERE user_id = auth.uid()
+    ) OR target_employee_id IN (
+        SELECT id FROM public.employees WHERE user_id = auth.uid()
+    ));
+
+CREATE POLICY "Employees can create swap requests" ON public.shift_swap_requests
+    FOR INSERT WITH CHECK (requester_id IN (
+        SELECT id FROM public.employees WHERE user_id = auth.uid()
+    ));
+
+CREATE POLICY "Tenant admins can manage swap requests" ON public.shift_swap_requests
+    FOR ALL USING (tenant_id IN (
+        SELECT tenant_id FROM public.client_tenant_users 
+        WHERE user_id = auth.uid() AND role IN ('super_admin', 'admin')
+    ));
+
+-- Overtime Records Policies
+CREATE POLICY "Admins can manage overtime" ON public.overtime_records
+    FOR ALL USING (has_role(auth.uid(), 'admin'));
+
+CREATE POLICY "Employees can view own overtime" ON public.overtime_records
+    FOR SELECT USING (employee_id IN (
+        SELECT id FROM public.employees WHERE user_id = auth.uid()
+    ));
+
+CREATE POLICY "Tenant admins can manage overtime" ON public.overtime_records
+    FOR ALL USING (tenant_id IN (
+        SELECT tenant_id FROM public.client_tenant_users 
+        WHERE user_id = auth.uid() AND role IN ('super_admin', 'admin')
+    ));
+
+-- Geofence Zones Policies
+CREATE POLICY "Admins can manage geofence zones" ON public.geofence_zones
+    FOR ALL USING (has_role(auth.uid(), 'admin'));
+
+CREATE POLICY "Employees can view geofence zones" ON public.geofence_zones
+    FOR SELECT USING (is_active = true AND tenant_id IN (
+        SELECT tenant_id FROM public.client_tenant_users WHERE user_id = auth.uid()
+    ));
+
+CREATE POLICY "Tenant admins can manage zones" ON public.geofence_zones
+    FOR ALL USING (tenant_id IN (
+        SELECT tenant_id FROM public.client_tenant_users 
+        WHERE user_id = auth.uid() AND role IN ('super_admin', 'admin')
+    ));
+
+-- Geofence Attendance Logs Policies
+CREATE POLICY "Admins can manage geofence logs" ON public.geofence_attendance_logs
+    FOR ALL USING (has_role(auth.uid(), 'admin'));
+
+CREATE POLICY "Employees can log attendance" ON public.geofence_attendance_logs
+    FOR INSERT WITH CHECK (employee_id IN (
+        SELECT id FROM public.employees WHERE user_id = auth.uid()
+    ));
+
+CREATE POLICY "Employees can view own geofence logs" ON public.geofence_attendance_logs
+    FOR SELECT USING (employee_id IN (
+        SELECT id FROM public.employees WHERE user_id = auth.uid()
+    ));
+
+CREATE POLICY "Tenant admins can view all logs" ON public.geofence_attendance_logs
+    FOR ALL USING (tenant_id IN (
+        SELECT tenant_id FROM public.client_tenant_users 
+        WHERE user_id = auth.uid() AND role IN ('super_admin', 'admin')
+    ));
+
+
+-- ============================================================================
+-- PART 30: SHIFT & GEOFENCING - INDEXES
+-- ============================================================================
+
+-- Shifts indexes
+CREATE INDEX idx_shifts_tenant ON public.shifts(tenant_id);
+CREATE INDEX idx_shifts_status ON public.shifts(status);
+CREATE INDEX idx_shifts_tenant_active ON public.shifts(tenant_id) WHERE status = 'active';
+
+-- Shift Assignments indexes
+CREATE INDEX idx_shift_assignments_tenant ON public.shift_assignments(tenant_id);
+CREATE INDEX idx_shift_assignments_shift ON public.shift_assignments(shift_id);
+CREATE INDEX idx_shift_assignments_employee ON public.shift_assignments(employee_id);
+CREATE INDEX idx_shift_assignments_date ON public.shift_assignments(assignment_date);
+CREATE INDEX idx_shift_assignments_status ON public.shift_assignments(status);
+CREATE INDEX idx_shift_assignments_employee_date ON public.shift_assignments(employee_id, assignment_date);
+
+-- Shift Swap Requests indexes
+CREATE INDEX idx_shift_swap_tenant ON public.shift_swap_requests(tenant_id);
+CREATE INDEX idx_shift_swap_requester ON public.shift_swap_requests(requester_id);
+CREATE INDEX idx_shift_swap_target ON public.shift_swap_requests(target_employee_id);
+CREATE INDEX idx_shift_swap_status ON public.shift_swap_requests(status);
+
+-- Overtime Records indexes
+CREATE INDEX idx_overtime_tenant ON public.overtime_records(tenant_id);
+CREATE INDEX idx_overtime_employee ON public.overtime_records(employee_id);
+CREATE INDEX idx_overtime_date ON public.overtime_records(overtime_date);
+CREATE INDEX idx_overtime_status ON public.overtime_records(status);
+CREATE INDEX idx_overtime_payroll ON public.overtime_records(payroll_run_id);
+
+-- Geofence Zones indexes
+CREATE INDEX idx_geofence_zones_tenant ON public.geofence_zones(tenant_id);
+CREATE INDEX idx_geofence_zones_active ON public.geofence_zones(tenant_id) WHERE is_active = true;
+CREATE INDEX idx_geofence_zones_location ON public.geofence_zones(latitude, longitude);
+
+-- Geofence Attendance Logs indexes
+CREATE INDEX idx_geofence_logs_tenant ON public.geofence_attendance_logs(tenant_id);
+CREATE INDEX idx_geofence_logs_employee ON public.geofence_attendance_logs(employee_id);
+CREATE INDEX idx_geofence_logs_attendance ON public.geofence_attendance_logs(attendance_record_id);
+CREATE INDEX idx_geofence_logs_zone ON public.geofence_attendance_logs(geofence_zone_id);
+CREATE INDEX idx_geofence_logs_created ON public.geofence_attendance_logs(created_at);
+CREATE INDEX idx_geofence_logs_verification ON public.geofence_attendance_logs(verification_status);
+
+
+-- ============================================================================
+-- PART 31: ENABLE REALTIME FOR NEW TABLES
+-- ============================================================================
+
+ALTER PUBLICATION supabase_realtime ADD TABLE public.shifts;
+ALTER PUBLICATION supabase_realtime ADD TABLE public.shift_assignments;
+ALTER PUBLICATION supabase_realtime ADD TABLE public.shift_swap_requests;
+ALTER PUBLICATION supabase_realtime ADD TABLE public.overtime_records;
+ALTER PUBLICATION supabase_realtime ADD TABLE public.geofence_zones;
+ALTER PUBLICATION supabase_realtime ADD TABLE public.geofence_attendance_logs;
+
+
+-- ============================================================================
 -- END OF ATLAS DATABASE SCHEMA
--- Last Updated: December 7, 2025 @ 14:30 UTC
--- Total Tables: 46 | Functions: 7 | Triggers: 2 | RLS Policies: 60+
+-- Last Updated: December 7, 2025 @ 16:45 UTC
+-- Total Tables: 52 | Functions: 7 | Triggers: 2 | RLS Policies: 75+ | Indexes: 50+
 -- ============================================================================

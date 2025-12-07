@@ -1,14 +1,14 @@
 # ATLAS Setup & Deployment Guide
 
-> **Version**: 3.1.0  
-> **Last Updated**: December 7, 2025 @ 14:30 UTC  
+> **Version**: 3.2.0  
+> **Last Updated**: December 7, 2025 @ 16:45 UTC  
 > **Author**: CropXon ATLAS Team
 
 ## Overview
 
 This guide covers the complete setup and deployment of the ATLAS Workforce Operating System, including:
 - Supabase project configuration
-- Database schema deployment (46 tables, 7 functions, 2 triggers)
+- Database schema deployment (52 tables, 7 functions, 2 triggers)
 - Edge function deployment (6 deployed, 15 documented)
 - Environment variables
 - Authentication setup
@@ -20,15 +20,15 @@ This guide covers the complete setup and deployment of the ATLAS Workforce Opera
 
 | Component | Count | Details |
 |-----------|-------|---------|
-| **Database Tables** | 46 | 35 core + 7 operational + 4 HR module |
+| **Database Tables** | 52 | 35 core + 7 operational + 5 HR + 5 shift/geofencing |
 | **Database Functions** | 7 | Generators + feature checks |
 | **Database Triggers** | 2 | Profile creation, feature unlock |
 | **Edge Functions** | 15 | 6 deployed, 9 documented |
 | **Storage Buckets** | 1 | client-files |
 | **Secrets** | 6 | Supabase + Resend |
-| **Enums/Types** | 12 | RBAC, status workflows, notifications |
-| **RLS Policies** | 60+ | Row-level security |
-| **Indexes** | 35+ | Performance optimization |
+| **Enums/Types** | 15 | RBAC, status workflows, notifications, shift, geofencing |
+| **RLS Policies** | 75+ | Row-level security |
+| **Indexes** | 50+ | Performance optimization |
 
 ### Tables by Category
 - **Core** (8): profiles, user_roles, client_tenants, client_tenant_users, quotes, invoices, leads, inquiries
@@ -44,6 +44,9 @@ This guide covers the complete setup and deployment of the ATLAS Workforce Opera
 - **Features** (7): global_features, tenant_features, role_feature_defaults, employee_feature_access, employee_notifications, notification_preferences, feature_unlock_log
 - **Operational** (7): payroll_runs, payslips, bgv_requests, sso_states, insurance_claims, document_verifications, document_extractions
 - **HR Module** (5): employees, attendance_records, leave_types, leave_balances, leave_requests
+- **Shift Management** (3): shifts, shift_assignments, shift_swap_requests
+- **Overtime** (1): overtime_records
+- **Geofencing** (2): geofence_zones, geofence_attendance_logs
 
 ---
 
