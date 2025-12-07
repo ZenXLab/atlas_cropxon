@@ -1,4 +1,5 @@
 import React, { useState } from "react";
+import { useNavigate } from "react-router-dom";
 import { 
   CreditCard, 
   Download, 
@@ -12,12 +13,21 @@ import {
   Receipt,
   Calendar,
   AlertCircle,
-  Sparkles
+  Sparkles,
+  ChevronRight
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Progress } from "@/components/ui/progress";
 import { toast } from "sonner";
+import {
+  Breadcrumb,
+  BreadcrumbItem,
+  BreadcrumbLink,
+  BreadcrumbList,
+  BreadcrumbPage,
+  BreadcrumbSeparator,
+} from "@/components/ui/breadcrumb";
 
 const plans = [
   {
@@ -84,6 +94,7 @@ const usageMetrics = [
 ];
 
 const TenantBilling: React.FC = () => {
+  const navigate = useNavigate();
   const [selectedPlan, setSelectedPlan] = useState("pro");
 
   const handleUpgrade = (planId: string) => {
@@ -96,6 +107,23 @@ const TenantBilling: React.FC = () => {
 
   return (
     <div className="space-y-6 animate-fade-in">
+      {/* Breadcrumb */}
+      <Breadcrumb>
+        <BreadcrumbList>
+          <BreadcrumbItem>
+            <BreadcrumbLink onClick={() => navigate("/tenant/settings")} className="cursor-pointer hover:text-[#005EEB]">
+              Settings
+            </BreadcrumbLink>
+          </BreadcrumbItem>
+          <BreadcrumbSeparator>
+            <ChevronRight className="h-4 w-4" />
+          </BreadcrumbSeparator>
+          <BreadcrumbItem>
+            <BreadcrumbPage>Billing & Plans</BreadcrumbPage>
+          </BreadcrumbItem>
+        </BreadcrumbList>
+      </Breadcrumb>
+
       {/* Header */}
       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
         <div>

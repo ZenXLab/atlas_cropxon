@@ -1,4 +1,5 @@
 import React, { useState } from "react";
+import { useNavigate } from "react-router-dom";
 import { 
   Globe, 
   Plus, 
@@ -12,7 +13,8 @@ import {
   Trash2,
   Clock,
   Lock,
-  Server
+  Server,
+  ChevronRight
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -29,6 +31,14 @@ import {
   DialogTrigger,
 } from "@/components/ui/dialog";
 import { toast } from "sonner";
+import {
+  Breadcrumb,
+  BreadcrumbItem,
+  BreadcrumbLink,
+  BreadcrumbList,
+  BreadcrumbPage,
+  BreadcrumbSeparator,
+} from "@/components/ui/breadcrumb";
 
 interface Domain {
   id: string;
@@ -66,6 +76,7 @@ const dnsRecords = [
 ];
 
 const TenantCustomDomain: React.FC = () => {
+  const navigate = useNavigate();
   const [domainList, setDomainList] = useState(domains);
   const [isAddDialogOpen, setIsAddDialogOpen] = useState(false);
   const [newDomain, setNewDomain] = useState("");
@@ -149,6 +160,23 @@ const TenantCustomDomain: React.FC = () => {
 
   return (
     <div className="space-y-6 animate-fade-in">
+      {/* Breadcrumb */}
+      <Breadcrumb>
+        <BreadcrumbList>
+          <BreadcrumbItem>
+            <BreadcrumbLink onClick={() => navigate("/tenant/settings")} className="cursor-pointer hover:text-[#005EEB]">
+              Settings
+            </BreadcrumbLink>
+          </BreadcrumbItem>
+          <BreadcrumbSeparator>
+            <ChevronRight className="h-4 w-4" />
+          </BreadcrumbSeparator>
+          <BreadcrumbItem>
+            <BreadcrumbPage>Custom Domain</BreadcrumbPage>
+          </BreadcrumbItem>
+        </BreadcrumbList>
+      </Breadcrumb>
+
       {/* Header */}
       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
         <div>
