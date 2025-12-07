@@ -5,10 +5,11 @@ import { HeroSection } from "@/components/HeroSection";
 import { StatsSection } from "@/components/StatsSection";
 import { AboutSection } from "@/components/AboutSection";
 import { PillarsSection } from "@/components/PillarsSection";
+import { DemoVideoSection } from "@/components/DemoVideoSection";
 import { WhyChooseSection } from "@/components/WhyChooseSection";
 import { ComparisonTable } from "@/components/ComparisonTable";
 import { PricingCalculator } from "@/components/PricingCalculator";
-import { TestimonialsSection } from "@/components/TestimonialsSection";
+import { EnhancedTestimonialsSection } from "@/components/EnhancedTestimonialsSection";
 import { Footer } from "@/components/Footer";
 import { QuoteModal } from "@/components/QuoteModal";
 
@@ -94,6 +95,10 @@ const Index = () => {
             <PillarsSection />
           </section>
           
+          <section aria-labelledby="demo-heading">
+            <DemoVideoSection />
+          </section>
+          
           <section aria-labelledby="why-choose-heading">
             <WhyChooseSection />
           </section>
@@ -107,7 +112,7 @@ const Index = () => {
           </section>
           
           <section aria-labelledby="testimonials-heading">
-            <TestimonialsSection />
+            <EnhancedTestimonialsSection />
           </section>
         </article>
         
