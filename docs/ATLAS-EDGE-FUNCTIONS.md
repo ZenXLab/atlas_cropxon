@@ -1,12 +1,12 @@
 # ATLAS Edge Functions Documentation
 
-> **Version**: 3.5.0  
-> **Last Updated**: December 7, 2025 @ 18:30 UTC  
+> **Version**: 3.6.0  
+> **Last Updated**: December 7, 2025 @ 19:00 UTC  
 > **Author**: CropXon ATLAS Team
 
 ---
 
-## 📊 Edge Functions Summary (15 Total - ALL DEPLOYED)
+## 📊 Edge Functions Summary (16 Total - ALL DEPLOYED)
 
 | # | Function Name | Status | Category | Purpose/Description |
 |---|---------------|--------|----------|---------------------|
@@ -25,6 +25,7 @@
 | 13 | `sso-callback` | ✅ Deployed | SSO | Handle SSO OAuth callbacks (Google, Microsoft, Okta) |
 | 14 | `process-insurance-claim` | ✅ Deployed | Insurance | Submit and track insurance claim requests |
 | 15 | `verify-document` | ✅ Deployed | Documents | OCR and verification of uploaded documents |
+| 16 | `predictive-analytics` | ✅ Deployed | AI Analytics | AI-powered MRR forecasting, churn prediction, conversion insights |
 
 ---
 
@@ -32,9 +33,9 @@
 
 | Metric | Count |
 |--------|-------|
-| **Total Edge Functions** | 15 |
-| **Deployed** | 15 ✅ |
-| **Required Secrets** | 4 (SUPABASE_URL, SUPABASE_ANON_KEY, SUPABASE_SERVICE_ROLE_KEY, RESEND_API_KEY) |
+| **Total Edge Functions** | 16 |
+| **Deployed** | 16 ✅ |
+| **Required Secrets** | 5 (SUPABASE_URL, SUPABASE_ANON_KEY, SUPABASE_SERVICE_ROLE_KEY, RESEND_API_KEY, LOVABLE_API_KEY) |
 
 ---
 
@@ -52,6 +53,7 @@
 | **SSO** | sso-callback | 1 |
 | **Insurance** | process-insurance-claim | 1 |
 | **Documents** | verify-document | 1 |
+| **AI Analytics** | predictive-analytics | 1 |
 
 ---
 
@@ -88,7 +90,9 @@ supabase/
     │   └── index.ts
     ├── process-insurance-claim/      # Insurance claims
     │   └── index.ts
-    └── verify-document/              # Document OCR
+    ├── verify-document/              # Document OCR
+    │   └── index.ts
+    └── predictive-analytics/         # AI-powered predictions
         └── index.ts
 ```
 
@@ -102,6 +106,7 @@ supabase/
 | `SUPABASE_ANON_KEY` | Auto-provided by Supabase | ✅ Configured |
 | `SUPABASE_SERVICE_ROLE_KEY` | Auto-provided by Supabase | ✅ Configured |
 | `RESEND_API_KEY` | For sending emails via Resend | ✅ Configured |
+| `LOVABLE_API_KEY` | For AI predictions via Lovable AI Gateway | ✅ Configured |
 
 ---
 
@@ -1819,13 +1824,199 @@ await supabase.functions.invoke('process-insurance-claim', {
 
 ---
 
+### 16. predictive-analytics
+
+| Attribute | Details |
+|-----------|---------|
+| **File** | `supabase/functions/predictive-analytics/index.ts` |
+| **Purpose** | AI-powered predictions for MRR, churn, and conversions |
+| **Auth** | Public (verify_jwt = false) |
+| **Secrets** | LOVABLE_API_KEY |
+| **Actions** | mrr_forecast, churn_risk, conversion_improvement |
+| **Tables Used** | ai_predictions (cache) |
+
+#### Request Payload
+
+```typescript
+interface PredictiveAnalyticsPayload {
+  type: 'mrr_forecast' | 'churn_risk' | 'conversion_improvement';
+  data: {
+    // For mrr_forecast
+    currentMRR?: number;
+    growthRate?: number;
+    historicalData?: Array<{ month: string; mrr: number }>;
+    
+    // For churn_risk
+    customers?: Array<{
+      id: string;
+      lastActivity: string;
+      usageScore: number;
+      supportTickets: number;
+    }>;
+    
+    // For conversion_improvement
+    funnelData?: Array<{
+      stage: string;
+      visitors: number;
+      conversions: number;
+    }>;
+  };
+}
+```
+
+#### Complete Code
+
+```typescript
+// supabase/functions/predictive-analytics/index.ts
+
+import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
+
+const corsHeaders = {
+  'Access-Control-Allow-Origin': '*',
+  'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
+};
+
+serve(async (req) => {
+  if (req.method === 'OPTIONS') {
+    return new Response(null, { headers: corsHeaders });
+  }
+
+  try {
+    const { type, data } = await req.json();
+    const LOVABLE_API_KEY = Deno.env.get("LOVABLE_API_KEY");
+
+    if (!LOVABLE_API_KEY) {
+      throw new Error("LOVABLE_API_KEY is not configured");
+    }
+
+    console.log(`[predictive-analytics] Processing ${type} prediction`);
+
+    let systemPrompt = "";
+    let userPrompt = "";
+
+    switch (type) {
+      case 'mrr_forecast':
+        systemPrompt = "You are a financial analyst AI. Analyze MRR data and provide 6-month forecasts with confidence intervals.";
+        userPrompt = `Analyze this MRR data and forecast next 6 months: Current MRR: $${data.currentMRR}, Growth Rate: ${data.growthRate}%, Historical: ${JSON.stringify(data.historicalData)}. Return JSON with: { forecasts: [{ month, predicted_mrr, confidence }], insights: string[], risk_factors: string[] }`;
+        break;
+      case 'churn_risk':
+        systemPrompt = "You are a customer success AI. Analyze customer behavior and predict churn risk scores.";
+        userPrompt = `Analyze these customers for churn risk: ${JSON.stringify(data.customers)}. Return JSON with: { customers: [{ id, risk_score, risk_level, recommended_actions }], summary: { high_risk_count, total_at_risk_mrr } }`;
+        break;
+      case 'conversion_improvement':
+        systemPrompt = "You are a growth optimization AI. Analyze conversion funnels and suggest improvements.";
+        userPrompt = `Analyze this conversion funnel: ${JSON.stringify(data.funnelData)}. Return JSON with: { analysis: [{ stage, drop_off_rate, improvement_potential }], recommendations: [{ priority, action, expected_impact }] }`;
+        break;
+      default:
+        throw new Error(`Unknown prediction type: ${type}`);
+    }
+
+    const response = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
+      method: "POST",
+      headers: {
+        Authorization: `Bearer ${LOVABLE_API_KEY}`,
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({
+        model: "google/gemini-2.5-flash",
+        messages: [
+          { role: "system", content: systemPrompt },
+          { role: "user", content: userPrompt }
+        ],
+        response_format: { type: "json_object" }
+      }),
+    });
+
+    if (!response.ok) {
+      const errorText = await response.text();
+      console.error("[predictive-analytics] AI Gateway error:", errorText);
+      throw new Error(`AI Gateway error: ${response.status}`);
+    }
+
+    const aiResponse = await response.json();
+    const prediction = JSON.parse(aiResponse.choices[0].message.content);
+
+    console.log(`[predictive-analytics] Successfully generated ${type} prediction`);
+
+    return new Response(
+      JSON.stringify({ 
+        success: true, 
+        type,
+        prediction,
+        generated_at: new Date().toISOString()
+      }),
+      { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+    );
+
+  } catch (error) {
+    console.error('[predictive-analytics] Error:', error);
+    return new Response(
+      JSON.stringify({ success: false, error: error.message }),
+      { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+    );
+  }
+});
+```
+
+#### Usage Examples
+
+```typescript
+// MRR Forecast
+await supabase.functions.invoke('predictive-analytics', {
+  body: {
+    type: 'mrr_forecast',
+    data: {
+      currentMRR: 125000,
+      growthRate: 8.5,
+      historicalData: [
+        { month: 'Jul', mrr: 98000 },
+        { month: 'Aug', mrr: 105000 },
+        { month: 'Sep', mrr: 112000 },
+        { month: 'Oct', mrr: 118000 },
+        { month: 'Nov', mrr: 125000 }
+      ]
+    }
+  }
+});
+
+// Churn Risk Analysis
+await supabase.functions.invoke('predictive-analytics', {
+  body: {
+    type: 'churn_risk',
+    data: {
+      customers: [
+        { id: 'cust-1', lastActivity: '2025-11-15', usageScore: 45, supportTickets: 5 },
+        { id: 'cust-2', lastActivity: '2025-12-01', usageScore: 85, supportTickets: 1 }
+      ]
+    }
+  }
+});
+
+// Conversion Improvement
+await supabase.functions.invoke('predictive-analytics', {
+  body: {
+    type: 'conversion_improvement',
+    data: {
+      funnelData: [
+        { stage: 'Website Visit', visitors: 10000, conversions: 3500 },
+        { stage: 'Sign Up', visitors: 3500, conversions: 1200 },
+        { stage: 'Trial Start', visitors: 1200, conversions: 480 },
+        { stage: 'Paid Conversion', visitors: 480, conversions: 156 }
+      ]
+    }
+  }
+});
+```
+
+---
+
 ## 🏁 Summary
 
 | Metric | Value |
 |--------|-------|
-| **Total Functions** | 15 |
+| **Total Functions** | 16 |
 | **All Deployed** | ✅ Yes |
-| **Categories** | 10 |
-| **Required Secrets** | 4 |
+| **Categories** | 11 |
+| **Required Secrets** | 5 |
 
-All 15 edge functions are deployed and operational. Each function includes proper CORS handling, error logging, and database integration.
+All 16 edge functions are deployed and operational. Each function includes proper CORS handling, error logging, and database integration.
