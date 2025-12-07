@@ -8,6 +8,8 @@ import { ClickstreamTracker } from "@/components/ClickstreamTracker";
 import Index from "./pages/Index";
 import Features from "./pages/Features";
 import ModuleDetail from "./pages/modules/ModuleDetail";
+import About from "./pages/About";
+import Contact from "./pages/Contact";
 import Industries from "./pages/Industries";
 import GetQuote from "./pages/GetQuote";
 import Auth from "./pages/Auth";
@@ -50,6 +52,8 @@ const App = () => (
             <Route path="/" element={<Index />} />
             <Route path="/features" element={<Features />} />
             <Route path="/modules/:slug" element={<ModuleDetail />} />
+            <Route path="/about" element={<About />} />
+            <Route path="/contact" element={<Contact />} />
             <Route path="/industries" element={<Industries />} />
             <Route path="/get-quote" element={<GetQuote />} />
             <Route path="/auth" element={<Auth />} />
