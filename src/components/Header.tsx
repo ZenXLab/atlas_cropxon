@@ -59,10 +59,10 @@ const resources: MenuItem[] = [
 ];
 
 const company: MenuItem[] = [
-  { name: "About ATLAS", href: "/#about", icon: Building2, description: "Our Story" },
-  { name: "Leadership", href: "#", icon: Users, description: "Meet the Team" },
-  { name: "Careers", href: "#", icon: Handshake, description: "Join Us" },
-  { name: "Contact", href: "#", icon: Mail, description: "Get in Touch" },
+  { name: "About ATLAS", href: "/about", icon: Building2, description: "Our Story" },
+  { name: "Leadership", href: "/about#team", icon: Users, description: "Meet the Team" },
+  { name: "Careers", href: "/contact", icon: Handshake, description: "Join Us" },
+  { name: "Contact", href: "/contact", icon: Mail, description: "Get in Touch" },
 ];
 
 export const Header = ({ onQuoteClick }: HeaderProps) => {
