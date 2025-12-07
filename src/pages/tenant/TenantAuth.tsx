@@ -254,27 +254,27 @@ const TenantAuth = () => {
             </Button>
           </form>
 
-          <div className="mt-6 pt-6 border-t border-gray-100">
+          <div className="mt-6 pt-6 border-t border-gray-100 space-y-3">
             <p className="text-center text-sm text-[#6B7280]">
-              Looking for the Employee Portal?{" "}
+              New organization?{" "}
               <Link
-                to="/portal/login"
+                to="/onboarding"
                 className="text-[#005EEB] hover:text-[#0047B3] font-medium transition-colors"
               >
-                Sign in here
+                Start your onboarding journey
               </Link>
+            </p>
+            <p className="text-center text-xs text-[#9CA3AF]">
+              Looking for the{" "}
+              <Link to="/portal/login" className="text-[#6B7280] hover:text-[#005EEB] transition-colors">
+                Employee Portal
+              </Link>?
             </p>
           </div>
         </div>
 
         {/* Footer */}
-        <div className="mt-6 space-y-4">
-          <p className="text-center text-xs text-[#6B7280]">
-            New to ATLAS?{" "}
-            <Link to="/onboarding" className="text-[#005EEB] hover:text-[#0047B3] font-medium transition-colors">
-              Start your onboarding journey
-            </Link>
-          </p>
+        <div className="mt-6">
           <p className="text-center text-xs text-[#9CA3AF]">
             By continuing, you agree to our{" "}
             <a href="#" className="text-[#6B7280] hover:underline">Terms of Service</a>{" "}
