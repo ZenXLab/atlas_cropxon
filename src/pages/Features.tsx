@@ -25,8 +25,9 @@ const Features = () => {
         <link rel="canonical" href="https://atlas.cropxon.com/features" />
       </Helmet>
 
-      <main className="min-h-screen bg-background">
+      <div className="min-h-screen bg-background">
         <Header />
+        <main className="pt-16 lg:pt-18">
         
         {/* Hero Section */}
         <section 
@@ -174,8 +175,9 @@ const Features = () => {
           </div>
         </section>
 
+        </main>
         <Footer />
-      </main>
+      </div>
     </>
   );
 };

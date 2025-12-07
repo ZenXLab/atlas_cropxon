@@ -77,9 +77,9 @@ const Index = () => {
         </script>
       </Helmet>
 
-      <main className="min-h-screen bg-background">
+      <div className="min-h-screen bg-background">
         <Header onQuoteClick={() => setQuoteModalOpen(true)} />
-        
+        <main className="pt-16 lg:pt-18">
         <article>
           <HeroSection onQuoteClick={() => setQuoteModalOpen(true)} />
           
@@ -115,10 +115,10 @@ const Index = () => {
             <EnhancedTestimonialsSection />
           </section>
         </article>
-        
+        </main>
         <Footer />
         <QuoteModal open={quoteModalOpen} onOpenChange={setQuoteModalOpen} />
-      </main>
+      </div>
     </>
   );
 };

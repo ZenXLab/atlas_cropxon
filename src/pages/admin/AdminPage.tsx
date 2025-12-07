@@ -72,63 +72,21 @@ const AdminPage = () => {
     // Command Center
     if (path === "/admin" || path === "/admin/") return <AdminOverview />;
     if (path.startsWith("/admin/analytics")) return <AdminAnalytics />;
-    if (path.startsWith("/admin/health")) return (
-      <AdminPlaceholderPage 
-        title="System Health" 
-        description="Monitor system health and performance metrics"
-        icon={Gauge}
-        features={["Real-time health monitoring", "Performance metrics", "Uptime tracking", "Alert configuration"]}
-      />
-    );
+    if (path.startsWith("/admin/health")) return <AdminSystemHealth />;
     
     // Tenant Management
     if (path.startsWith("/admin/tenants")) return <AdminTenantManagement />;
-    if (path.startsWith("/admin/tenant-billing")) return (
-      <AdminPlaceholderPage 
-        title="Tenant Plans & Billing" 
-        description="Manage tenant subscriptions and billing"
-        icon={CreditCard}
-        features={["Subscription management", "Billing cycles", "Payment history", "Plan upgrades/downgrades"]}
-      />
-    );
-    if (path.startsWith("/admin/tenant-usage")) return (
-      <AdminPlaceholderPage 
-        title="Tenant Usage Metrics" 
-        description="Track tenant resource usage and quotas"
-        icon={TrendingUp}
-        features={["Usage dashboards", "Quota tracking", "Resource allocation", "Usage alerts"]}
-      />
-    );
-    if (path.startsWith("/admin/tenant-config")) return (
-      <AdminPlaceholderPage 
-        title="Tenant Configuration" 
-        description="Configure tenant-specific settings"
-        icon={Settings}
-        features={["Custom branding", "Feature toggles", "Integration settings", "SSO configuration"]}
-      />
-    );
+    if (path.startsWith("/admin/tenant-billing")) return <AdminTenantBilling />;
+    if (path.startsWith("/admin/tenant-usage")) return <AdminRevenueAnalytics />;
+    if (path.startsWith("/admin/tenant-config")) return <AdminAccessControl />;
     if (path.startsWith("/admin/plugins")) return <AdminPluginsManagement />;
     
     // Sales & Revenue
     if (path.startsWith("/admin/crm")) return <AdminCRM />;
-    if (path.startsWith("/admin/pipeline")) return (
-      <AdminPlaceholderPage 
-        title="Pipeline Management" 
-        description="Track sales pipeline and deal stages"
-        icon={Workflow}
-        features={["Kanban board", "Deal tracking", "Stage management", "Revenue forecasting"]}
-      />
-    );
+    if (path.startsWith("/admin/pipeline")) return <AdminPipelineManagement />;
     if (path.startsWith("/admin/quotes")) return <AdminQuotes />;
     if (path.startsWith("/admin/invoices")) return <AdminInvoices />;
-    if (path.startsWith("/admin/revenue")) return (
-      <AdminPlaceholderPage 
-        title="Revenue Analytics" 
-        description="Detailed revenue metrics and forecasting"
-        icon={TrendingUp}
-        features={["MRR/ARR tracking", "Cohort analysis", "Revenue forecasting", "Churn analysis"]}
-      />
-    );
+    if (path.startsWith("/admin/revenue")) return <AdminRevenueAnalytics />;
     if (path.startsWith("/admin/pricing")) return <AdminPricingManagement />;
     
     // Client Management
@@ -244,14 +202,7 @@ const AdminPage = () => {
         features={["CPU/Memory monitoring", "Disk usage", "Network stats", "Process management"]}
       />
     );
-    if (path.startsWith("/admin/cloud")) return (
-      <AdminPlaceholderPage 
-        title="Cloud Resources" 
-        description="Manage cloud infrastructure resources"
-        icon={Cloud}
-        features={["Resource inventory", "Cost optimization", "Auto-scaling", "Backup management"]}
-      />
-    );
+    if (path.startsWith("/admin/cloud")) return <AdminCloudResources />;
     if (path.startsWith("/admin/database")) return (
       <AdminPlaceholderPage 
         title="Database Status" 
@@ -271,23 +222,9 @@ const AdminPage = () => {
     
     // Security & Compliance
     if (path.startsWith("/admin/security")) return <AdminCompliance />;
-    if (path.startsWith("/admin/access-control")) return (
-      <AdminPlaceholderPage 
-        title="Access Control" 
-        description="Manage roles and permissions"
-        icon={Key}
-        features={["Role management", "Permission matrix", "Access logs", "Session management"]}
-      />
-    );
+    if (path.startsWith("/admin/access-control")) return <AdminAccessControl />;
     if (path.startsWith("/admin/compliance")) return <AdminCompliance />;
-    if (path.startsWith("/admin/threats")) return (
-      <AdminPlaceholderPage 
-        title="Threat Detection" 
-        description="Security threat monitoring and alerts"
-        icon={AlertTriangle}
-        features={["Threat dashboard", "Anomaly detection", "Security alerts", "Incident response"]}
-      />
-    );
+    if (path.startsWith("/admin/threats")) return <AdminThreatDetection />;
     if (path.startsWith("/admin/audit")) return <AdminAuditLogs />;
     
     // Platform Settings
