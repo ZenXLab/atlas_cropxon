@@ -1,6 +1,7 @@
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Settings, Database, Shield, Bell } from "lucide-react";
+import { CacheManagement } from "./CacheManagement";
 
 export const AdminSettings = () => {
   return (
@@ -113,6 +114,8 @@ export const AdminSettings = () => {
             </div>
           </CardContent>
         </Card>
+
+        <CacheManagement />
       </div>
     </div>
   );
