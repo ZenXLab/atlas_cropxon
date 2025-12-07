@@ -2,7 +2,7 @@ import { useMemo, useState, useEffect } from "react";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { Globe, Radio, MapPin, Users, RefreshCw, Loader2 } from "lucide-react";
+import { Globe, Radio, MapPin, Users, RefreshCw, Loader2, AlertCircle } from "lucide-react";
 import { motion } from "framer-motion";
 import { toast } from "sonner";
 
@@ -19,6 +19,7 @@ interface GeoLocation {
   country: string;
   countryCode: string;
   city: string;
+  region: string;
   lat: number;
   lon: number;
 }
@@ -31,6 +32,8 @@ interface RegionData {
   sessions: number;
   color: string;
   cities: string[];
+  isCurrentLocation?: boolean;
+  percentage?: number;
 }
 
 // Map country codes to approximate positions on our simplified world map
@@ -50,42 +53,97 @@ const COUNTRY_POSITIONS: Record<string, { x: number; y: number; color: string }>
   AE: { x: 62, y: 48, color: "from-teal-500 to-cyan-600" },
   NL: { x: 50, y: 32, color: "from-orange-500 to-red-600" },
   KR: { x: 83, y: 38, color: "from-sky-500 to-blue-600" },
+  PK: { x: 68, y: 42, color: "from-green-600 to-emerald-700" },
+  BD: { x: 74, y: 44, color: "from-green-500 to-teal-600" },
+  ID: { x: 79, y: 58, color: "from-red-500 to-pink-600" },
+  PH: { x: 82, y: 50, color: "from-blue-500 to-cyan-600" },
+  VN: { x: 78, y: 50, color: "from-red-600 to-yellow-600" },
+  TH: { x: 76, y: 52, color: "from-blue-500 to-red-500" },
+  MY: { x: 77, y: 55, color: "from-blue-600 to-yellow-500" },
   DEFAULT: { x: 50, y: 50, color: "from-gray-500 to-slate-600" },
 };
 
-export const GeoAnalytics = ({ events }: GeoAnalyticsProps) => {
-  const [geoCache, setGeoCache] = useState<Record<string, GeoLocation>>({});
-  const [isLoadingGeo, setIsLoadingGeo] = useState(false);
-  const [currentUserLocation, setCurrentUserLocation] = useState<GeoLocation | null>(null);
+const COUNTRY_NAMES: Record<string, string> = {
+  IN: "India", US: "United States", GB: "United Kingdom", DE: "Germany",
+  AU: "Australia", CA: "Canada", JP: "Japan", SG: "Singapore",
+  FR: "France", BR: "Brazil", CN: "China", RU: "Russia",
+  AE: "UAE", NL: "Netherlands", KR: "South Korea", PK: "Pakistan",
+  BD: "Bangladesh", ID: "Indonesia", PH: "Philippines", VN: "Vietnam",
+  TH: "Thailand", MY: "Malaysia"
+};
 
-  // Fetch current user's location on mount
+export const GeoAnalytics = ({ events }: GeoAnalyticsProps) => {
+  const [currentUserLocation, setCurrentUserLocation] = useState<GeoLocation | null>(null);
+  const [isLoadingGeo, setIsLoadingGeo] = useState(false);
+  const [geoError, setGeoError] = useState<string | null>(null);
+
+  // Fetch current user's REAL location on mount using IP geolocation
   useEffect(() => {
     const fetchCurrentLocation = async () => {
+      setIsLoadingGeo(true);
+      setGeoError(null);
       try {
-        const response = await fetch("https://ipapi.co/json/");
+        // Try ipapi.co first (free, no key required, 1000 req/day)
+        const response = await fetch("https://ipapi.co/json/", {
+          headers: { 'Accept': 'application/json' }
+        });
+        
         if (response.ok) {
           const data = await response.json();
+          if (data.error) {
+            throw new Error(data.reason || "IP lookup failed");
+          }
           setCurrentUserLocation({
             country: data.country_name,
             countryCode: data.country_code,
             city: data.city,
+            region: data.region,
             lat: data.latitude,
             lon: data.longitude,
           });
+        } else {
+          throw new Error("Failed to fetch location");
         }
       } catch (error) {
-        console.log("Could not fetch location:", error);
+        console.log("Primary geo lookup failed, trying backup:", error);
+        // Try backup service
+        try {
+          const backupResponse = await fetch("https://ip-api.com/json/?fields=status,country,countryCode,city,regionName,lat,lon");
+          if (backupResponse.ok) {
+            const backupData = await backupResponse.json();
+            if (backupData.status === "success") {
+              setCurrentUserLocation({
+                country: backupData.country,
+                countryCode: backupData.countryCode,
+                city: backupData.city,
+                region: backupData.regionName,
+                lat: backupData.lat,
+                lon: backupData.lon,
+              });
+            } else {
+              setGeoError("Could not determine location");
+            }
+          }
+        } catch (backupError) {
+          console.error("Backup geo lookup also failed:", backupError);
+          setGeoError("Location services unavailable");
+        }
+      } finally {
+        setIsLoadingGeo(false);
       }
     };
     fetchCurrentLocation();
   }, []);
 
-  // Distribute sessions across regions
-  const geoData = useMemo(() => {
+  // Calculate geographic distribution based on REAL session data
+  const geoData = useMemo((): RegionData[] => {
     const uniqueSessions = [...new Set(events.map(e => e.session_id))];
     const regionMap = new Map<string, RegionData>();
-
-    // If we have current user location, use it as primary
+    
+    // Since clickstream events don't store location, we show:
+    // 1. Current admin's location as the primary data point
+    // 2. All sessions are from the current location (real scenario for local testing)
+    
     if (currentUserLocation) {
       const pos = COUNTRY_POSITIONS[currentUserLocation.countryCode] || COUNTRY_POSITIONS.DEFAULT;
       regionMap.set(currentUserLocation.countryCode, {
@@ -94,68 +152,58 @@ export const GeoAnalytics = ({ events }: GeoAnalyticsProps) => {
         x: pos.x,
         y: pos.y,
         color: pos.color,
-        sessions: Math.max(1, Math.floor(uniqueSessions.length * 0.6)), // 60% from current location
+        sessions: uniqueSessions.length, // All sessions are from current location
         cities: [currentUserLocation.city],
+        isCurrentLocation: true,
+      });
+    } else if (uniqueSessions.length > 0) {
+      // Fallback if location not available - show as unknown
+      regionMap.set("UNKNOWN", {
+        name: "Unknown Location",
+        code: "??",
+        x: 50,
+        y: 50,
+        color: "from-gray-500 to-slate-600",
+        sessions: uniqueSessions.length,
+        cities: [],
       });
     }
-
-    // Distribute remaining sessions across other regions based on session hash
-    const remainingSessions = currentUserLocation 
-      ? Math.floor(uniqueSessions.length * 0.4) 
-      : uniqueSessions.length;
-
-    const otherCountries = Object.entries(COUNTRY_POSITIONS)
-      .filter(([code]) => code !== 'DEFAULT' && code !== currentUserLocation?.countryCode)
-      .slice(0, 5);
-
-    otherCountries.forEach(([code, pos], idx) => {
-      const sessionsForRegion = Math.floor(remainingSessions / (otherCountries.length + 1)) + (idx === 0 ? remainingSessions % otherCountries.length : 0);
-      if (sessionsForRegion > 0) {
-        const countryNames: Record<string, string> = {
-          IN: "India", US: "United States", GB: "United Kingdom", DE: "Germany",
-          AU: "Australia", CA: "Canada", JP: "Japan", SG: "Singapore",
-          FR: "France", BR: "Brazil", CN: "China", RU: "Russia",
-          AE: "UAE", NL: "Netherlands", KR: "South Korea"
-        };
-        regionMap.set(code, {
-          name: countryNames[code] || code,
-          code,
-          x: pos.x,
-          y: pos.y,
-          color: pos.color,
-          sessions: sessionsForRegion,
-          cities: [],
-        });
-      }
-    });
 
     const regions = Array.from(regionMap.values());
     const maxSessions = Math.max(...regions.map(r => r.sessions), 1);
     
-    return regions
-      .map(r => ({ ...r, percentage: (r.sessions / maxSessions) * 100 }))
-      .sort((a, b) => b.sessions - a.sessions);
+    return regions.map(r => ({ 
+      ...r, 
+      percentage: (r.sessions / maxSessions) * 100 
+    }));
   }, [events, currentUserLocation]);
 
-  const totalSessions = geoData.reduce((sum, r) => sum + r.sessions, 0);
+  const totalSessions = new Set(events.map(e => e.session_id)).size;
 
   const refreshGeoData = async () => {
     setIsLoadingGeo(true);
+    setGeoError(null);
     try {
       const response = await fetch("https://ipapi.co/json/");
       if (response.ok) {
         const data = await response.json();
-        setCurrentUserLocation({
-          country: data.country_name,
-          countryCode: data.country_code,
-          city: data.city,
-          lat: data.latitude,
-          lon: data.longitude,
-        });
-        toast.success("Location data refreshed");
+        if (!data.error) {
+          setCurrentUserLocation({
+            country: data.country_name,
+            countryCode: data.country_code,
+            city: data.city,
+            region: data.region,
+            lat: data.latitude,
+            lon: data.longitude,
+          });
+          toast.success("Location data refreshed");
+        } else {
+          throw new Error(data.reason);
+        }
       }
     } catch (error) {
       toast.error("Could not refresh location data");
+      setGeoError("Refresh failed");
     } finally {
       setIsLoadingGeo(false);
     }
@@ -170,12 +218,19 @@ export const GeoAnalytics = ({ events }: GeoAnalyticsProps) => {
               <Globe className="h-5 w-5 text-primary" />
               Geographic Analytics
             </CardTitle>
-            <CardDescription>
-              User distribution by region
-              {currentUserLocation && (
-                <span className="ml-2 text-primary">
-                  • Your location: {currentUserLocation.city}, {currentUserLocation.country}
+            <CardDescription className="mt-1">
+              {currentUserLocation ? (
+                <span className="flex items-center gap-1">
+                  <MapPin className="h-3 w-3" />
+                  Your location: <span className="text-primary font-medium">{currentUserLocation.city}, {currentUserLocation.region}, {currentUserLocation.country}</span>
                 </span>
+              ) : geoError ? (
+                <span className="flex items-center gap-1 text-amber-600">
+                  <AlertCircle className="h-3 w-3" />
+                  {geoError}
+                </span>
+              ) : (
+                "Detecting location..."
               )}
             </CardDescription>
           </div>
@@ -232,33 +287,33 @@ export const GeoAnalytics = ({ events }: GeoAnalyticsProps) => {
                   transition={{ duration: 2, repeat: Infinity, delay: idx * 0.2 }}
                 />
                 {/* Marker */}
-                <div className={`relative w-4 h-4 bg-gradient-to-r ${region.color} rounded-full border-2 border-white shadow-lg cursor-pointer group`}>
-                  {/* Current location indicator */}
-                  {region.code === currentUserLocation?.countryCode && (
+                <div className={`relative w-5 h-5 bg-gradient-to-r ${region.color} rounded-full border-2 border-white shadow-lg cursor-pointer group`}>
+                  {/* Current location ring */}
+                  {region.isCurrentLocation && (
                     <motion.div
                       className="absolute -inset-2 border-2 border-primary rounded-full"
-                      animate={{ scale: [1, 1.2, 1] }}
+                      animate={{ scale: [1, 1.3, 1], opacity: [1, 0.5, 1] }}
                       transition={{ duration: 1.5, repeat: Infinity }}
                     />
                   )}
                   {/* Tooltip */}
                   <div className="absolute bottom-full left-1/2 -translate-x-1/2 mb-2 opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none z-10">
-                    <div className="bg-popover text-popover-foreground rounded-lg shadow-lg px-3 py-2 text-xs whitespace-nowrap">
+                    <div className="bg-popover text-popover-foreground rounded-lg shadow-lg px-3 py-2 text-xs whitespace-nowrap border">
                       <p className="font-semibold">{region.name}</p>
-                      <p className="text-muted-foreground">{region.sessions} sessions</p>
+                      <p className="text-muted-foreground">{region.sessions} session{region.sessions !== 1 ? 's' : ''}</p>
                       {region.cities.length > 0 && (
-                        <p className="text-muted-foreground">Cities: {region.cities.join(", ")}</p>
+                        <p className="text-primary">{region.cities.join(", ")}</p>
                       )}
-                      {region.code === currentUserLocation?.countryCode && (
+                      {region.isCurrentLocation && (
                         <Badge variant="outline" className="mt-1 text-[10px]">Your Location</Badge>
                       )}
                     </div>
                   </div>
                 </div>
                 {/* Session count badge */}
-                {region.sessions > 2 && (
+                {region.sessions > 0 && (
                   <motion.span
-                    className="absolute -top-1 -right-1 bg-background text-foreground text-[10px] font-bold px-1 rounded shadow"
+                    className="absolute -top-2 -right-2 bg-background text-foreground text-[10px] font-bold px-1.5 py-0.5 rounded-full shadow border"
                     initial={{ scale: 0 }}
                     animate={{ scale: 1 }}
                     transition={{ delay: idx * 0.1 + 0.3 }}
@@ -270,7 +325,7 @@ export const GeoAnalytics = ({ events }: GeoAnalyticsProps) => {
             ))}
 
             {/* Total sessions overlay */}
-            <div className="absolute bottom-3 left-3 bg-background/80 backdrop-blur-sm rounded-lg px-3 py-2">
+            <div className="absolute bottom-3 left-3 bg-background/90 backdrop-blur-sm rounded-lg px-3 py-2 border">
               <div className="flex items-center gap-2">
                 <Users className="h-4 w-4 text-muted-foreground" />
                 <span className="text-lg font-bold">{totalSessions}</span>
@@ -280,10 +335,20 @@ export const GeoAnalytics = ({ events }: GeoAnalyticsProps) => {
 
             {/* Current location badge */}
             {currentUserLocation && (
-              <div className="absolute top-3 right-3 bg-primary/10 backdrop-blur-sm rounded-lg px-2 py-1">
-                <div className="flex items-center gap-1 text-xs text-primary">
+              <div className="absolute top-3 right-3 bg-primary/10 backdrop-blur-sm rounded-lg px-2 py-1 border border-primary/20">
+                <div className="flex items-center gap-1 text-xs text-primary font-medium">
                   <MapPin className="h-3 w-3" />
                   <span>{currentUserLocation.city}</span>
+                </div>
+              </div>
+            )}
+
+            {/* Loading overlay */}
+            {isLoadingGeo && (
+              <div className="absolute inset-0 bg-background/50 backdrop-blur-sm flex items-center justify-center">
+                <div className="flex items-center gap-2 text-sm text-muted-foreground">
+                  <Loader2 className="h-4 w-4 animate-spin" />
+                  Detecting location...
                 </div>
               </div>
             )}
@@ -291,46 +356,64 @@ export const GeoAnalytics = ({ events }: GeoAnalyticsProps) => {
 
           {/* Region breakdown */}
           <div className="space-y-3">
-            <h4 className="font-medium text-sm text-muted-foreground">Top Regions</h4>
-            {geoData.slice(0, 6).map((region, idx) => (
-              <motion.div
-                key={region.code}
-                initial={{ opacity: 0, x: 20 }}
-                animate={{ opacity: 1, x: 0 }}
-                transition={{ delay: idx * 0.1 }}
-                className="flex items-center gap-3"
-              >
-                <div className={`w-8 h-8 rounded-full bg-gradient-to-r ${region.color} flex items-center justify-center text-white text-xs font-bold shadow-lg`}>
-                  {region.code}
-                </div>
-                <div className="flex-1">
-                  <div className="flex items-center justify-between mb-1">
-                    <div className="flex items-center gap-2">
-                      <span className="font-medium text-sm">{region.name}</span>
-                      {region.code === currentUserLocation?.countryCode && (
-                        <Badge variant="outline" className="text-[10px] px-1">You</Badge>
-                      )}
+            <h4 className="font-medium text-sm text-muted-foreground">Session Distribution</h4>
+            
+            {geoData.length > 0 ? (
+              geoData.map((region, idx) => (
+                <motion.div
+                  key={region.code}
+                  initial={{ opacity: 0, x: 20 }}
+                  animate={{ opacity: 1, x: 0 }}
+                  transition={{ delay: idx * 0.1 }}
+                  className="flex items-center gap-3"
+                >
+                  <div className={`w-10 h-10 rounded-full bg-gradient-to-r ${region.color} flex items-center justify-center text-white text-xs font-bold shadow-lg`}>
+                    {region.code.slice(0, 2)}
+                  </div>
+                  <div className="flex-1">
+                    <div className="flex items-center justify-between mb-1">
+                      <div className="flex items-center gap-2">
+                        <span className="font-medium text-sm">{region.name}</span>
+                        {region.isCurrentLocation && (
+                          <Badge variant="outline" className="text-[10px] px-1 bg-primary/10 text-primary border-primary/30">
+                            You
+                          </Badge>
+                        )}
+                      </div>
+                      <span className="text-sm font-semibold">{region.sessions} sessions</span>
                     </div>
-                    <span className="text-sm text-muted-foreground">{region.sessions} sessions</span>
+                    <div className="h-2 bg-muted rounded-full overflow-hidden">
+                      <motion.div
+                        className={`h-full bg-gradient-to-r ${region.color}`}
+                        initial={{ width: 0 }}
+                        animate={{ width: `${region.percentage || 100}%` }}
+                        transition={{ delay: idx * 0.1 + 0.3, duration: 0.5 }}
+                      />
+                    </div>
+                    {region.cities.length > 0 && (
+                      <p className="text-xs text-muted-foreground mt-1">
+                        Cities: {region.cities.join(", ")}
+                      </p>
+                    )}
                   </div>
-                  <div className="h-2 bg-muted rounded-full overflow-hidden">
-                    <motion.div
-                      className={`h-full bg-gradient-to-r ${region.color}`}
-                      initial={{ width: 0 }}
-                      animate={{ width: `${region.percentage}%` }}
-                      transition={{ delay: idx * 0.1 + 0.3, duration: 0.5 }}
-                    />
-                  </div>
-                </div>
-              </motion.div>
-            ))}
-
-            {totalSessions === 0 && (
+                </motion.div>
+              ))
+            ) : (
               <div className="text-center py-8 text-muted-foreground">
                 <MapPin className="h-12 w-12 mx-auto mb-3 opacity-50" />
-                <p>No geographic data yet</p>
+                <p>No session data available</p>
+                <p className="text-xs mt-1">Start browsing to generate clickstream data</p>
               </div>
             )}
+
+            {/* Info note */}
+            <div className="mt-4 p-3 bg-muted/50 rounded-lg border text-xs text-muted-foreground">
+              <p className="flex items-center gap-1">
+                <AlertCircle className="h-3 w-3" />
+                Geographic data is based on your current IP location. 
+                All sessions are attributed to detected location.
+              </p>
+            </div>
           </div>
         </div>
       </CardContent>
