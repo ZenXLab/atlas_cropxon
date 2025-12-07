@@ -1,7 +1,7 @@
 # ATLAS Edge Functions Documentation
 
-> **Version**: 3.0.0  
-> **Last Updated**: December 7, 2025  
+> **Version**: 3.1.0  
+> **Last Updated**: December 7, 2025 @ 14:30 UTC  
 > **Author**: CropXon ATLAS Team
 
 ---
@@ -10,16 +10,20 @@
 
 | Component | Count | Details |
 |-----------|-------|---------|
-| **Database Tables** | 42 | 35 core + 7 operational (payroll, BGV, SSO, insurance, docs) |
+| **Database Tables** | 46 | 35 core + 7 operational + 4 HR module |
 | **Database Functions** | 7 | 6 generators + 1 feature check |
 | **Database Triggers** | 2 | Profile creation + feature unlock notification |
 | **Edge Functions (Deployed)** | 6 | Notifications, emails, PDF generation |
 | **Edge Functions (Documented)** | 15 | Including payroll, BGV, SSO, insurance, document verification |
 | **Storage Buckets** | 1 | client-files |
 | **Secrets Configured** | 6 | SUPABASE_URL, SUPABASE_ANON_KEY, SUPABASE_SERVICE_ROLE_KEY, RESEND_API_KEY, SUPABASE_DB_URL, SUPABASE_PUBLISHABLE_KEY |
-| **Enums/Types** | 10 | app_role, quote_status, invoice_status, feature_category, feature_tier, tenant_role, notification_type, notification_channel, notification_priority |
-| **RLS Policies** | 50+ | Comprehensive row-level security across all tables |
-| **Database Indexes** | 30+ | Performance optimization indexes |
+| **Enums/Types** | 12 | app_role, quote_status, invoice_status, feature_category, feature_tier, tenant_role, notification_type, notification_channel, notification_priority, + 2 HR enums |
+| **RLS Policies** | 60+ | Comprehensive row-level security across all tables |
+| **Database Indexes** | 35+ | Performance optimization indexes |
+
+### New Tables Added (December 7, 2025)
+- **Operational**: payroll_runs, payslips, bgv_requests, sso_states, insurance_claims, document_verifications, document_extractions
+- **HR Module**: employees, attendance_records, leave_types, leave_balances, leave_requests
 
 ---
 

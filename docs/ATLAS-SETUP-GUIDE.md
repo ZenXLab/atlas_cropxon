@@ -1,31 +1,49 @@
 # ATLAS Setup & Deployment Guide
 
-> **Version**: 3.0.0  
-> **Last Updated**: December 7, 2025  
+> **Version**: 3.1.0  
+> **Last Updated**: December 7, 2025 @ 14:30 UTC  
 > **Author**: CropXon ATLAS Team
 
 ## Overview
 
 This guide covers the complete setup and deployment of the ATLAS Workforce Operating System, including:
 - Supabase project configuration
-- Database schema deployment (42 tables, 7 functions, 2 triggers)
+- Database schema deployment (46 tables, 7 functions, 2 triggers)
 - Edge function deployment (6 deployed, 15 documented)
 - Environment variables
 - Authentication setup
 - Storage configuration
 
-### Component Summary
+---
 
-| Component | Count |
-|-----------|-------|
-| Database Tables | 42 |
-| Database Functions | 7 |
-| Database Triggers | 2 |
-| Edge Functions | 15 |
-| Storage Buckets | 1 |
-| Secrets | 6 |
-| Enums/Types | 10 |
-| RLS Policies | 50+ |
+## Component Summary
+
+| Component | Count | Details |
+|-----------|-------|---------|
+| **Database Tables** | 46 | 35 core + 7 operational + 4 HR module |
+| **Database Functions** | 7 | Generators + feature checks |
+| **Database Triggers** | 2 | Profile creation, feature unlock |
+| **Edge Functions** | 15 | 6 deployed, 9 documented |
+| **Storage Buckets** | 1 | client-files |
+| **Secrets** | 6 | Supabase + Resend |
+| **Enums/Types** | 12 | RBAC, status workflows, notifications |
+| **RLS Policies** | 60+ | Row-level security |
+| **Indexes** | 35+ | Performance optimization |
+
+### Tables by Category
+- **Core** (8): profiles, user_roles, client_tenants, client_tenant_users, quotes, invoices, leads, inquiries
+- **Onboarding** (2): onboarding_sessions, client_onboarding
+- **Projects** (2): projects, project_milestones
+- **Support** (3): support_tickets, ticket_messages, meetings
+- **Files** (2): client_files, client_feedback
+- **MSP** (3): client_msp_servers, client_msp_metrics, client_msp_alerts
+- **Pricing** (4): service_pricing, service_addons, pricing_modifiers, coupon_codes
+- **Admin** (3): admin_notifications, admin_settings, portal_settings
+- **Logging** (4): audit_logs, system_logs, clickstream_events, api_usage
+- **Team** (4): team_members, compliance_items, integrations, client_notices
+- **Features** (7): global_features, tenant_features, role_feature_defaults, employee_feature_access, employee_notifications, notification_preferences, feature_unlock_log
+- **Operational** (7): payroll_runs, payslips, bgv_requests, sso_states, insurance_claims, document_verifications, document_extractions
+- **HR Module** (5): employees, attendance_records, leave_types, leave_balances, leave_requests
 
 ---
 
