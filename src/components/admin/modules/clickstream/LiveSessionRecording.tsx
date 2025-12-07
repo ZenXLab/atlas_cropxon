@@ -301,8 +301,19 @@ export const LiveSessionRecording = ({ events }: LiveSessionRecordingProps) => {
                     </div>
                   </div>
 
-                  {/* Page Content Simulation */}
-                  <div className="absolute inset-0 mt-8 p-4">
+                  {/* Session Replay Visualization - Shows user journey as animated sequence */}
+                  <div className="absolute inset-0 mt-8 p-4 overflow-hidden">
+                    {/* Simulated page content background */}
+                    <div className="absolute inset-0 mt-0 bg-gradient-to-b from-slate-800 to-slate-900">
+                      <div className="h-12 bg-slate-700/30 mx-4 mt-4 rounded" />
+                      <div className="h-40 bg-slate-700/20 mx-4 mt-4 rounded" />
+                      <div className="grid grid-cols-3 gap-2 mx-4 mt-4">
+                        <div className="h-20 bg-slate-700/20 rounded" />
+                        <div className="h-20 bg-slate-700/20 rounded" />
+                        <div className="h-20 bg-slate-700/20 rounded" />
+                      </div>
+                    </div>
+                    
                     <AnimatePresence mode="wait">
                       {currentEvent && (
                         <motion.div
@@ -310,66 +321,78 @@ export const LiveSessionRecording = ({ events }: LiveSessionRecordingProps) => {
                           initial={{ opacity: 0 }}
                           animate={{ opacity: 1 }}
                           exit={{ opacity: 0 }}
-                          className="h-full flex flex-col items-center justify-center"
+                          className="absolute inset-0 flex flex-col items-center justify-center"
                         >
-                          {/* Event Visualization */}
+                          {/* Cursor/Action Visualization */}
                           <motion.div
-                            initial={{ scale: 0 }}
-                            animate={{ scale: 1 }}
+                            initial={{ scale: 0, x: -50, y: -30 }}
+                            animate={{ 
+                              scale: 1, 
+                              x: currentEvent.event_type === "click" ? [0, 20, 0] : 0,
+                              y: currentEvent.event_type === "scroll" ? [0, 30, 0] : 0
+                            }}
+                            transition={{ duration: 0.3 }}
                             className="relative"
                           >
                             {currentEvent.event_type === "click" && (
-                              <motion.div
-                                animate={{ 
-                                  scale: [1, 1.5, 1],
-                                  opacity: [1, 0.5, 1] 
-                                }}
-                                transition={{ duration: 0.5 }}
-                                className="w-16 h-16 rounded-full bg-red-500/30 border-2 border-red-500 flex items-center justify-center"
-                              >
-                                <MousePointer className="h-6 w-6 text-red-500" />
-                              </motion.div>
+                              <>
+                                <motion.div
+                                  animate={{ scale: [1, 2, 1], opacity: [1, 0, 1] }}
+                                  transition={{ duration: 0.5, repeat: Infinity, repeatDelay: 1 }}
+                                  className="absolute -inset-4 rounded-full bg-red-500/30"
+                                />
+                                <div className="w-12 h-12 rounded-full bg-red-500/50 border-2 border-red-400 flex items-center justify-center shadow-lg shadow-red-500/30">
+                                  <MousePointer className="h-5 w-5 text-red-200" />
+                                </div>
+                              </>
                             )}
                             {currentEvent.event_type === "pageview" && (
                               <motion.div
-                                initial={{ y: 20 }}
-                                animate={{ y: 0 }}
-                                className="w-16 h-16 rounded-full bg-blue-500/30 border-2 border-blue-500 flex items-center justify-center"
+                                initial={{ y: 20, opacity: 0 }}
+                                animate={{ y: 0, opacity: 1 }}
+                                className="w-12 h-12 rounded-full bg-blue-500/50 border-2 border-blue-400 flex items-center justify-center shadow-lg shadow-blue-500/30"
                               >
-                                <Eye className="h-6 w-6 text-blue-500" />
+                                <Eye className="h-5 w-5 text-blue-200" />
                               </motion.div>
                             )}
                             {currentEvent.event_type === "scroll" && (
                               <motion.div
-                                animate={{ y: [0, -10, 0] }}
-                                transition={{ duration: 0.5 }}
-                                className="w-16 h-16 rounded-full bg-green-500/30 border-2 border-green-500 flex items-center justify-center"
+                                animate={{ y: [0, -15, 0] }}
+                                transition={{ duration: 0.8, repeat: Infinity }}
+                                className="w-12 h-12 rounded-full bg-green-500/50 border-2 border-green-400 flex items-center justify-center shadow-lg shadow-green-500/30"
                               >
-                                <span className="text-green-500 font-bold">
+                                <span className="text-green-200 font-bold text-sm">
                                   {(currentEvent.metadata as any)?.depth || 0}%
                                 </span>
                               </motion.div>
                             )}
                           </motion.div>
 
-                          {/* Event Info */}
-                          <div className="mt-6 text-center">
-                            <Badge 
-                              className={
-                                currentEvent.event_type === "click" ? "bg-red-500" :
-                                currentEvent.event_type === "pageview" ? "bg-blue-500" :
-                                "bg-green-500"
-                              }
-                            >
-                              {currentEvent.event_type.toUpperCase()}
-                            </Badge>
-                            <p className="text-white mt-2 text-sm">
-                              {currentEvent.element_text || currentEvent.page_url}
-                            </p>
-                            <p className="text-slate-400 text-xs mt-1">
-                              {format(new Date(currentEvent.created_at), "HH:mm:ss.SSS")}
-                            </p>
-                          </div>
+                          {/* Event Info Overlay */}
+                          <motion.div 
+                            initial={{ y: 20, opacity: 0 }}
+                            animate={{ y: 0, opacity: 1 }}
+                            transition={{ delay: 0.2 }}
+                            className="absolute bottom-4 left-4 right-4 p-3 bg-slate-800/90 backdrop-blur rounded-lg border border-slate-700"
+                          >
+                            <div className="flex items-center justify-between">
+                              <div className="flex items-center gap-2">
+                                <Badge className={
+                                  currentEvent.event_type === "click" ? "bg-red-500" :
+                                  currentEvent.event_type === "pageview" ? "bg-blue-500" :
+                                  "bg-green-500"
+                                }>
+                                  {currentEvent.event_type.toUpperCase()}
+                                </Badge>
+                                <span className="text-white text-sm truncate max-w-[200px]">
+                                  {currentEvent.element_text || currentEvent.page_url || "Page interaction"}
+                                </span>
+                              </div>
+                              <span className="text-slate-400 text-xs font-mono">
+                                {format(new Date(currentEvent.created_at), "HH:mm:ss.SSS")}
+                              </span>
+                            </div>
+                          </motion.div>
                         </motion.div>
                       )}
                     </AnimatePresence>
@@ -379,6 +402,14 @@ export const LiveSessionRecording = ({ events }: LiveSessionRecordingProps) => {
                   <button className="absolute top-10 right-2 p-1.5 rounded bg-slate-700/50 hover:bg-slate-600/50 transition-colors">
                     <Maximize2 className="h-4 w-4 text-slate-300" />
                   </button>
+                  
+                  {/* Recording indicator */}
+                  {isPlaying && (
+                    <div className="absolute top-10 left-2 flex items-center gap-1.5 px-2 py-1 rounded bg-red-500/80">
+                      <div className="w-2 h-2 rounded-full bg-white animate-pulse" />
+                      <span className="text-white text-xs font-medium">REC</span>
+                    </div>
+                  )}
                 </div>
 
                 {/* Progress Bar */}

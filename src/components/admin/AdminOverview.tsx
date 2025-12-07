@@ -9,6 +9,7 @@ import {
 } from "lucide-react";
 import { Link } from "react-router-dom";
 import { format } from "date-fns";
+import { ClickstreamSummaryWidget } from "./modules/clickstream/ClickstreamSummaryWidget";
 
 interface OnboardingSession {
   id: string;
@@ -267,6 +268,9 @@ export const AdminOverview = () => {
           </div>
         </CardContent>
       </Card>
+
+      {/* Clickstream Summary Widget */}
+      <ClickstreamSummaryWidget />
 
       {/* Two Column Layout for Widgets */}
       <div className="grid lg:grid-cols-2 gap-6">
