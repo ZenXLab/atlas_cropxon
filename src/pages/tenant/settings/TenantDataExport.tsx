@@ -1,4 +1,5 @@
 import React, { useState } from "react";
+import { useNavigate } from "react-router-dom";
 import { 
   Download, 
   FileText, 
@@ -12,7 +13,8 @@ import {
   FolderArchive,
   Shield,
   FileSpreadsheet,
-  FileJson
+  FileJson,
+  ChevronRight
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -28,6 +30,14 @@ import {
 } from "@/components/ui/select";
 import { Progress } from "@/components/ui/progress";
 import { toast } from "sonner";
+import {
+  Breadcrumb,
+  BreadcrumbItem,
+  BreadcrumbLink,
+  BreadcrumbList,
+  BreadcrumbPage,
+  BreadcrumbSeparator,
+} from "@/components/ui/breadcrumb";
 
 interface ExportModule {
   id: string;
@@ -55,6 +65,7 @@ const recentExports = [
 ];
 
 const TenantDataExport: React.FC = () => {
+  const navigate = useNavigate();
   const [modules, setModules] = useState(exportModules);
   const [exportFormat, setExportFormat] = useState("csv");
   const [dateRange, setDateRange] = useState("all");
@@ -120,6 +131,23 @@ const TenantDataExport: React.FC = () => {
 
   return (
     <div className="space-y-6 animate-fade-in">
+      {/* Breadcrumb */}
+      <Breadcrumb>
+        <BreadcrumbList>
+          <BreadcrumbItem>
+            <BreadcrumbLink onClick={() => navigate("/tenant/settings")} className="cursor-pointer hover:text-[#005EEB]">
+              Settings
+            </BreadcrumbLink>
+          </BreadcrumbItem>
+          <BreadcrumbSeparator>
+            <ChevronRight className="h-4 w-4" />
+          </BreadcrumbSeparator>
+          <BreadcrumbItem>
+            <BreadcrumbPage>Data Export</BreadcrumbPage>
+          </BreadcrumbItem>
+        </BreadcrumbList>
+      </Breadcrumb>
+
       {/* Header */}
       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
         <div>

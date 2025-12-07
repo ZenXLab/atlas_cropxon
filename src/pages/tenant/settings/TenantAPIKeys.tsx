@@ -1,4 +1,5 @@
 import React, { useState } from "react";
+import { useNavigate } from "react-router-dom";
 import { 
   Key, 
   Plus, 
@@ -12,7 +13,8 @@ import {
   Clock,
   Shield,
   ExternalLink,
-  RefreshCw
+  RefreshCw,
+  ChevronRight
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -36,6 +38,14 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { toast } from "sonner";
+import {
+  Breadcrumb,
+  BreadcrumbItem,
+  BreadcrumbLink,
+  BreadcrumbList,
+  BreadcrumbPage,
+  BreadcrumbSeparator,
+} from "@/components/ui/breadcrumb";
 
 interface APIKey {
   id: string;
@@ -103,6 +113,7 @@ const webhooks = [
 ];
 
 const TenantAPIKeys: React.FC = () => {
+  const navigate = useNavigate();
   const [keys, setKeys] = useState(apiKeys);
   const [showKey, setShowKey] = useState<Record<string, boolean>>({});
   const [isCreateDialogOpen, setIsCreateDialogOpen] = useState(false);
@@ -164,6 +175,23 @@ const TenantAPIKeys: React.FC = () => {
 
   return (
     <div className="space-y-6 animate-fade-in">
+      {/* Breadcrumb */}
+      <Breadcrumb>
+        <BreadcrumbList>
+          <BreadcrumbItem>
+            <BreadcrumbLink onClick={() => navigate("/tenant/settings")} className="cursor-pointer hover:text-[#005EEB]">
+              Settings
+            </BreadcrumbLink>
+          </BreadcrumbItem>
+          <BreadcrumbSeparator>
+            <ChevronRight className="h-4 w-4" />
+          </BreadcrumbSeparator>
+          <BreadcrumbItem>
+            <BreadcrumbPage>API Keys</BreadcrumbPage>
+          </BreadcrumbItem>
+        </BreadcrumbList>
+      </Breadcrumb>
+
       {/* Header */}
       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
         <div>
