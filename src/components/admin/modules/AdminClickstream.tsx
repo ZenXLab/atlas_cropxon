@@ -1,18 +1,23 @@
-import { useState } from "react";
-import { useQuery } from "@tanstack/react-query";
+import { useState, useEffect } from "react";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { MousePointer, Eye, Link, BarChart3, Clock, Users } from "lucide-react";
+import { MousePointer, Eye, Link, BarChart3, Clock, Users, RefreshCw, Radio, FlaskConical, TrendingUp } from "lucide-react";
 import { format } from "date-fns";
+import { toast } from "sonner";
 
 export const AdminClickstream = () => {
   const [eventFilter, setEventFilter] = useState<string>("all");
   const [timeRange, setTimeRange] = useState<string>("24h");
+  const [isRefreshing, setIsRefreshing] = useState(false);
+  const [liveEventsCount, setLiveEventsCount] = useState(0);
+  const queryClient = useQueryClient();
 
-  const { data: events, isLoading } = useQuery({
+  const { data: events, isLoading, refetch } = useQuery({
     queryKey: ["clickstream-events", eventFilter, timeRange],
     queryFn: async () => {
       let query = supabase
@@ -43,6 +48,84 @@ export const AdminClickstream = () => {
       return data;
     },
   });
+
+  // Fetch A/B test experiments for conversion tracking
+  const { data: experiments } = useQuery({
+    queryKey: ["ab-experiments-active"],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from("ab_experiments")
+        .select(`
+          *,
+          ab_variants (*),
+          ab_user_assignments (*)
+        `)
+        .eq("status", "running");
+      
+      if (error) throw error;
+      return data;
+    },
+  });
+
+  // Real-time subscription for clickstream events
+  useEffect(() => {
+    const channel = supabase
+      .channel('clickstream-realtime')
+      .on(
+        'postgres_changes',
+        {
+          event: 'INSERT',
+          schema: 'public',
+          table: 'clickstream_events'
+        },
+        (payload) => {
+          setLiveEventsCount(prev => prev + 1);
+          // Invalidate query to refresh data
+          queryClient.invalidateQueries({ queryKey: ["clickstream-events"] });
+        }
+      )
+      .subscribe();
+
+    return () => {
+      supabase.removeChannel(channel);
+    };
+  }, [queryClient]);
+
+  // Real-time subscription for A/B test assignments
+  useEffect(() => {
+    const channel = supabase
+      .channel('ab-assignments-realtime')
+      .on(
+        'postgres_changes',
+        {
+          event: '*',
+          schema: 'public',
+          table: 'ab_user_assignments'
+        },
+        () => {
+          queryClient.invalidateQueries({ queryKey: ["ab-experiments-active"] });
+        }
+      )
+      .subscribe();
+
+    return () => {
+      supabase.removeChannel(channel);
+    };
+  }, [queryClient]);
+
+  const handleRefresh = async () => {
+    setIsRefreshing(true);
+    setLiveEventsCount(0);
+    try {
+      await refetch();
+      await queryClient.invalidateQueries({ queryKey: ["ab-experiments-active"] });
+      toast.success("Data refreshed successfully");
+    } catch {
+      toast.error("Failed to refresh data");
+    } finally {
+      setIsRefreshing(false);
+    }
+  };
 
   const stats = {
     totalEvents: events?.length || 0,
@@ -83,14 +166,59 @@ export const AdminClickstream = () => {
     return colors[type] || colors.click;
   };
 
+  // Calculate A/B test stats from real data
+  const abTestStats = experiments?.map(exp => {
+    const variants = exp.ab_variants || [];
+    const assignments = exp.ab_user_assignments || [];
+    
+    return {
+      name: exp.name,
+      status: exp.status,
+      totalAssignments: assignments.length,
+      conversions: assignments.filter((a: any) => a.converted).length,
+      conversionRate: assignments.length > 0 
+        ? ((assignments.filter((a: any) => a.converted).length / assignments.length) * 100).toFixed(1)
+        : "0.0",
+      variants: variants.map((v: any) => ({
+        name: v.name,
+        isControl: v.is_control,
+        assignments: assignments.filter((a: any) => a.variant_id === v.id).length,
+        conversions: assignments.filter((a: any) => a.variant_id === v.id && a.converted).length,
+      })),
+    };
+  }) || [];
+
   return (
     <div className="space-y-6">
       <div className="flex items-center justify-between">
-        <div>
-          <h1 className="text-3xl font-bold">Clickstream Analytics</h1>
-          <p className="text-muted-foreground">Track user interactions and behavior</p>
+        <div className="flex items-center gap-3">
+          <div>
+            <h1 className="text-3xl font-bold">Clickstream Analytics</h1>
+            <p className="text-muted-foreground">Track user interactions and behavior</p>
+          </div>
+          <div className="flex items-center gap-2">
+            <Badge variant="outline" className="bg-emerald-500/10 text-emerald-600 border-emerald-500/30 animate-pulse">
+              <Radio className="h-3 w-3 mr-1" />
+              Live
+            </Badge>
+            {liveEventsCount > 0 && (
+              <Badge variant="secondary" className="bg-primary/10 text-primary">
+                +{liveEventsCount} new
+              </Badge>
+            )}
+          </div>
         </div>
         <div className="flex gap-2">
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={handleRefresh}
+            disabled={isRefreshing}
+            className="gap-2"
+          >
+            <RefreshCw className={`h-4 w-4 ${isRefreshing ? "animate-spin" : ""}`} />
+            Refresh
+          </Button>
           <Select value={timeRange} onValueChange={setTimeRange}>
             <SelectTrigger className="w-32">
               <Clock className="h-4 w-4 mr-2" />
@@ -126,6 +254,12 @@ export const AdminClickstream = () => {
           </CardHeader>
           <CardContent>
             <div className="text-2xl font-bold">{stats.totalEvents}</div>
+            <p className="text-xs text-muted-foreground mt-1">
+              <Badge variant="outline" className="text-[10px] px-1">
+                <Radio className="h-2 w-2 mr-1" />
+                Realtime
+              </Badge>
+            </p>
           </CardContent>
         </Card>
         <Card>
@@ -135,6 +269,7 @@ export const AdminClickstream = () => {
           </CardHeader>
           <CardContent>
             <div className="text-2xl font-bold">{stats.uniqueSessions}</div>
+            <p className="text-xs text-muted-foreground mt-1">Active visitors</p>
           </CardContent>
         </Card>
         <Card>
@@ -144,6 +279,7 @@ export const AdminClickstream = () => {
           </CardHeader>
           <CardContent>
             <div className="text-2xl font-bold">{stats.clicks}</div>
+            <p className="text-xs text-muted-foreground mt-1">User interactions</p>
           </CardContent>
         </Card>
         <Card>
@@ -153,9 +289,78 @@ export const AdminClickstream = () => {
           </CardHeader>
           <CardContent>
             <div className="text-2xl font-bold">{stats.pageViews}</div>
+            <p className="text-xs text-muted-foreground mt-1">Pages visited</p>
           </CardContent>
         </Card>
       </div>
+
+      {/* A/B Testing Integration */}
+      {abTestStats.length > 0 && (
+        <Card className="border-primary/20 bg-primary/5">
+          <CardHeader>
+            <CardTitle className="flex items-center gap-2">
+              <FlaskConical className="h-5 w-5 text-primary" />
+              Active A/B Experiments
+              <Badge variant="outline" className="ml-2 bg-emerald-500/10 text-emerald-600 border-emerald-500/30">
+                <Radio className="h-3 w-3 mr-1" />
+                Live Tracking
+              </Badge>
+            </CardTitle>
+            <CardDescription>Real-time experiment performance from clickstream data</CardDescription>
+          </CardHeader>
+          <CardContent>
+            <div className="space-y-4">
+              {abTestStats.map((exp, idx) => (
+                <div key={idx} className="p-4 bg-background rounded-lg border">
+                  <div className="flex items-center justify-between mb-3">
+                    <div className="flex items-center gap-2">
+                      <span className="font-semibold">{exp.name}</span>
+                      <Badge variant="outline" className="capitalize">{exp.status}</Badge>
+                    </div>
+                    <div className="flex items-center gap-4 text-sm">
+                      <span className="text-muted-foreground">
+                        {exp.totalAssignments} participants
+                      </span>
+                      <span className="flex items-center gap-1 text-emerald-600">
+                        <TrendingUp className="h-4 w-4" />
+                        {exp.conversionRate}% conversion
+                      </span>
+                    </div>
+                  </div>
+                  <div className="grid gap-2 md:grid-cols-2">
+                    {exp.variants.map((variant: any, vIdx: number) => (
+                      <div 
+                        key={vIdx} 
+                        className={`p-3 rounded border ${variant.isControl ? "bg-muted/50" : "bg-primary/5"}`}
+                      >
+                        <div className="flex items-center justify-between">
+                          <span className="font-medium">
+                            {variant.name}
+                            {variant.isControl && (
+                              <Badge variant="secondary" className="ml-2 text-[10px]">Control</Badge>
+                            )}
+                          </span>
+                          <span className="text-sm text-muted-foreground">
+                            {variant.assignments} users / {variant.conversions} conversions
+                          </span>
+                        </div>
+                        <div className="mt-2 h-2 bg-muted rounded-full overflow-hidden">
+                          <div 
+                            className="h-full bg-primary transition-all duration-500"
+                            style={{ 
+                              width: `${variant.assignments > 0 ? (variant.conversions / variant.assignments) * 100 : 0}%` 
+                            }}
+                          />
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              ))}
+            </div>
+          </CardContent>
+        </Card>
+      )}
 
       <div className="grid gap-6 md:grid-cols-2">
         <Card>
@@ -163,6 +368,10 @@ export const AdminClickstream = () => {
             <CardTitle className="flex items-center gap-2">
               <Link className="h-5 w-5" />
               Top Pages
+              <Badge variant="outline" className="ml-auto text-[10px]">
+                <Radio className="h-2 w-2 mr-1" />
+                Live
+              </Badge>
             </CardTitle>
             <CardDescription>Most visited pages</CardDescription>
           </CardHeader>
@@ -190,6 +399,10 @@ export const AdminClickstream = () => {
             <CardTitle className="flex items-center gap-2">
               <MousePointer className="h-5 w-5" />
               Top Clicked Elements
+              <Badge variant="outline" className="ml-auto text-[10px]">
+                <Radio className="h-2 w-2 mr-1" />
+                Live
+              </Badge>
             </CardTitle>
             <CardDescription>Most clicked buttons and links</CardDescription>
           </CardHeader>
@@ -215,8 +428,16 @@ export const AdminClickstream = () => {
 
       <Card>
         <CardHeader>
-          <CardTitle>Recent Events</CardTitle>
-          <CardDescription>Latest user interactions</CardDescription>
+          <div className="flex items-center justify-between">
+            <div>
+              <CardTitle>Recent Events</CardTitle>
+              <CardDescription>Latest user interactions</CardDescription>
+            </div>
+            <Badge variant="outline" className="bg-emerald-500/10 text-emerald-600 border-emerald-500/30">
+              <Radio className="h-3 w-3 mr-1 animate-pulse" />
+              Realtime Stream
+            </Badge>
+          </div>
         </CardHeader>
         <CardContent>
           {isLoading ? (
