@@ -31,19 +31,26 @@
 
 
 -- ============================================================================
--- ATLAS DATABASE SCHEMA STATISTICS (Updated: December 7, 2025)
+-- ATLAS DATABASE SCHEMA STATISTICS
 -- ============================================================================
 -- 
+-- LAST UPDATED: December 7, 2025 @ 14:30 UTC
+--
 -- COMPONENT COUNTS:
---   Database Tables: 42 (35 existing + 7 new operational tables)
+--   Database Tables: 46 (35 core + 7 operational + 4 HR module)
 --   Database Functions: 7
 --   Database Triggers: 2
 --   Edge Functions: 15 (6 deployed + 9 documented)
 --   Storage Buckets: 1
 --   Secrets Configured: 6
---   Enums/Types: 10
---   RLS Policies: 50+
---   Indexes: 23
+--   Enums/Types: 12 (10 existing + 2 new HR enums)
+--   RLS Policies: 60+
+--   Indexes: 35+
+--
+-- NEW TABLES ADDED (December 7, 2025):
+--   - payroll_runs, payslips, bgv_requests, sso_states
+--   - insurance_claims, document_verifications, document_extractions
+--   - employees, attendance_records, leave_requests, leave_balances
 --
 -- ============================================================================
 
@@ -1161,7 +1168,282 @@ COMMENT ON TABLE public.document_extractions IS 'OCR document data extraction re
 
 
 -- ============================================================================
--- PART 15: DATABASE FUNCTIONS
+-- PART 15: HR MODULE TABLES (Employees, Attendance, Leave)
+-- ============================================================================
+
+-- 15.1 Employees (Core employee records)
+CREATE TABLE public.employees (
+    id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
+    employee_code text NOT NULL,            -- Format: EMP-XXXX or custom per tenant
+    tenant_id uuid NOT NULL REFERENCES public.client_tenants(id) ON DELETE CASCADE,
+    user_id uuid REFERENCES auth.users(id), -- Linked Supabase auth user (optional)
+    
+    -- Personal Information
+    first_name text NOT NULL,
+    last_name text NOT NULL,
+    full_name text GENERATED ALWAYS AS (first_name || ' ' || last_name) STORED,
+    email text NOT NULL,
+    personal_email text,
+    phone text,
+    mobile text,
+    date_of_birth date,
+    gender text,                            -- male/female/other/prefer_not_to_say
+    blood_group text,
+    marital_status text,
+    nationality text DEFAULT 'Indian',
+    
+    -- Address
+    current_address jsonb DEFAULT '{}',
+    permanent_address jsonb DEFAULT '{}',
+    
+    -- Employment Details
+    employment_type text DEFAULT 'full_time', -- full_time/part_time/contract/intern/consultant
+    employment_status text DEFAULT 'active',  -- active/inactive/terminated/resigned/on_leave
+    department text,
+    designation text,
+    job_title text,
+    grade text,
+    reporting_manager_id uuid REFERENCES public.employees(id),
+    
+    -- Dates
+    date_of_joining date NOT NULL,
+    date_of_confirmation date,
+    date_of_exit date,
+    probation_end_date date,
+    
+    -- Work Location
+    work_location text,
+    branch text,
+    is_remote boolean DEFAULT false,
+    
+    -- Compensation
+    salary_currency text DEFAULT 'INR',
+    ctc_annual numeric(15,2),
+    basic_salary numeric(12,2),
+    
+    -- Bank Details (encrypted in production)
+    bank_name text,
+    bank_account_number text,
+    bank_ifsc_code text,
+    
+    -- Statutory IDs
+    pan_number text,
+    aadhaar_number text,
+    uan_number text,                        -- Universal Account Number (PF)
+    esic_number text,
+    
+    -- Emergency Contact
+    emergency_contact_name text,
+    emergency_contact_phone text,
+    emergency_contact_relation text,
+    
+    -- Profile
+    avatar_url text,
+    bio text,
+    skills jsonb DEFAULT '[]',
+    
+    -- Metadata
+    custom_fields jsonb DEFAULT '{}',
+    
+    created_at timestamptz DEFAULT now(),
+    updated_at timestamptz DEFAULT now(),
+    
+    UNIQUE(tenant_id, employee_code),
+    UNIQUE(tenant_id, email)
+);
+
+COMMENT ON TABLE public.employees IS 'Core employee master data for each tenant organization';
+
+-- 15.2 Attendance Records
+CREATE TABLE public.attendance_records (
+    id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
+    tenant_id uuid NOT NULL REFERENCES public.client_tenants(id) ON DELETE CASCADE,
+    employee_id uuid NOT NULL REFERENCES public.employees(id) ON DELETE CASCADE,
+    
+    -- Date
+    attendance_date date NOT NULL,
+    
+    -- Check-in/Check-out
+    check_in_time timestamptz,
+    check_out_time timestamptz,
+    
+    -- Duration
+    total_hours numeric(5,2),               -- Calculated work hours
+    break_hours numeric(5,2) DEFAULT 0,
+    overtime_hours numeric(5,2) DEFAULT 0,
+    
+    -- Status
+    status text DEFAULT 'present',          -- present/absent/half_day/leave/holiday/weekend/work_from_home
+    attendance_type text DEFAULT 'regular', -- regular/wfh/on_site/field
+    
+    -- Location (for geo-fencing)
+    check_in_location jsonb,                -- {lat, lng, address}
+    check_out_location jsonb,
+    is_location_verified boolean DEFAULT false,
+    
+    -- Device Info
+    check_in_device text,                   -- mobile/web/biometric/manual
+    check_out_device text,
+    check_in_ip text,
+    check_out_ip text,
+    
+    -- Regularization
+    is_regularized boolean DEFAULT false,
+    regularized_by uuid,
+    regularized_at timestamptz,
+    regularization_reason text,
+    
+    -- Shift
+    shift_id uuid,
+    shift_name text,
+    expected_check_in time,
+    expected_check_out time,
+    
+    -- Late/Early
+    is_late boolean DEFAULT false,
+    late_by_minutes integer DEFAULT 0,
+    is_early_departure boolean DEFAULT false,
+    early_by_minutes integer DEFAULT 0,
+    
+    notes text,
+    created_at timestamptz DEFAULT now(),
+    updated_at timestamptz DEFAULT now(),
+    
+    UNIQUE(tenant_id, employee_id, attendance_date)
+);
+
+COMMENT ON TABLE public.attendance_records IS 'Daily attendance records with check-in/out times, location, and regularization';
+
+-- 15.3 Leave Types (Configurable per tenant)
+CREATE TABLE public.leave_types (
+    id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
+    tenant_id uuid NOT NULL REFERENCES public.client_tenants(id) ON DELETE CASCADE,
+    
+    name text NOT NULL,                     -- Casual Leave, Sick Leave, Earned Leave, etc.
+    code text NOT NULL,                     -- CL, SL, EL, etc.
+    description text,
+    
+    -- Configuration
+    is_paid boolean DEFAULT true,
+    is_encashable boolean DEFAULT false,
+    is_carry_forward boolean DEFAULT false,
+    max_carry_forward_days integer DEFAULT 0,
+    
+    -- Accrual
+    accrual_type text DEFAULT 'annual',     -- annual/monthly/quarterly/none
+    annual_quota numeric(5,2),              -- Days per year
+    monthly_accrual numeric(5,2),
+    
+    -- Limits
+    max_consecutive_days integer,
+    min_days_notice integer DEFAULT 0,
+    max_times_per_year integer,
+    
+    -- Applicability
+    applicable_gender text,                 -- all/male/female
+    applicable_employment_types jsonb DEFAULT '["full_time"]',
+    probation_allowed boolean DEFAULT false,
+    
+    -- Color for UI
+    color text DEFAULT '#3B82F6',
+    
+    is_active boolean DEFAULT true,
+    sort_order integer DEFAULT 0,
+    
+    created_at timestamptz DEFAULT now(),
+    updated_at timestamptz DEFAULT now(),
+    
+    UNIQUE(tenant_id, code)
+);
+
+COMMENT ON TABLE public.leave_types IS 'Configurable leave types per tenant with accrual and limit rules';
+
+-- 15.4 Leave Balances
+CREATE TABLE public.leave_balances (
+    id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
+    tenant_id uuid NOT NULL REFERENCES public.client_tenants(id) ON DELETE CASCADE,
+    employee_id uuid NOT NULL REFERENCES public.employees(id) ON DELETE CASCADE,
+    leave_type_id uuid NOT NULL REFERENCES public.leave_types(id) ON DELETE CASCADE,
+    
+    -- Balance Year
+    year integer NOT NULL,
+    
+    -- Balance Details
+    opening_balance numeric(5,2) DEFAULT 0,
+    accrued numeric(5,2) DEFAULT 0,
+    used numeric(5,2) DEFAULT 0,
+    pending numeric(5,2) DEFAULT 0,         -- Requested but not approved
+    encashed numeric(5,2) DEFAULT 0,
+    lapsed numeric(5,2) DEFAULT 0,
+    carry_forward numeric(5,2) DEFAULT 0,
+    
+    -- Calculated
+    available_balance numeric(5,2) GENERATED ALWAYS AS (opening_balance + accrued + carry_forward - used - encashed - lapsed) STORED,
+    
+    last_accrual_date date,
+    
+    created_at timestamptz DEFAULT now(),
+    updated_at timestamptz DEFAULT now(),
+    
+    UNIQUE(tenant_id, employee_id, leave_type_id, year)
+);
+
+COMMENT ON TABLE public.leave_balances IS 'Employee leave balance tracking per leave type and year';
+
+-- 15.5 Leave Requests
+CREATE TABLE public.leave_requests (
+    id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
+    request_number text NOT NULL,           -- Format: LV-YYYYMMDD-XXXX
+    tenant_id uuid NOT NULL REFERENCES public.client_tenants(id) ON DELETE CASCADE,
+    employee_id uuid NOT NULL REFERENCES public.employees(id) ON DELETE CASCADE,
+    leave_type_id uuid NOT NULL REFERENCES public.leave_types(id),
+    
+    -- Leave Period
+    start_date date NOT NULL,
+    end_date date NOT NULL,
+    
+    -- Days
+    total_days numeric(5,2) NOT NULL,
+    half_day_start boolean DEFAULT false,   -- Half day on start date
+    half_day_end boolean DEFAULT false,     -- Half day on end date
+    
+    -- Status
+    status text DEFAULT 'pending',          -- pending/approved/rejected/cancelled/withdrawn
+    
+    -- Reason
+    reason text NOT NULL,
+    
+    -- Approval Chain
+    approver_id uuid REFERENCES public.employees(id),
+    approved_at timestamptz,
+    rejected_at timestamptz,
+    rejection_reason text,
+    
+    -- Multi-level Approval
+    approval_chain jsonb DEFAULT '[]',      -- Array of {approver_id, status, timestamp, comments}
+    current_approval_level integer DEFAULT 1,
+    
+    -- Attachments (for medical certificates, etc.)
+    attachments jsonb DEFAULT '[]',
+    
+    -- Contact during leave
+    contact_number text,
+    handover_to uuid REFERENCES public.employees(id),
+    handover_notes text,
+    
+    -- Cancellation
+    cancelled_at timestamptz,
+    cancellation_reason text,
+    
+    created_at timestamptz DEFAULT now(),
+    updated_at timestamptz DEFAULT now()
+);
+
+COMMENT ON TABLE public.leave_requests IS 'Employee leave requests with approval workflow';
+
+
+-- ============================================================================
+-- PART 16: DATABASE FUNCTIONS
 -- ============================================================================
 
 -- 14.1 Generate Quote Number (ATL-YYYY-XXXX)
@@ -1729,14 +2011,156 @@ CREATE INDEX idx_document_extractions_status ON public.document_extractions(stat
 
 
 -- ============================================================================
--- PART 21: ENABLE REALTIME FOR NEW TABLES
+-- PART 22: HR MODULE - ENABLE RLS
+-- ============================================================================
+
+ALTER TABLE public.employees ENABLE ROW LEVEL SECURITY;
+ALTER TABLE public.attendance_records ENABLE ROW LEVEL SECURITY;
+ALTER TABLE public.leave_types ENABLE ROW LEVEL SECURITY;
+ALTER TABLE public.leave_balances ENABLE ROW LEVEL SECURITY;
+ALTER TABLE public.leave_requests ENABLE ROW LEVEL SECURITY;
+
+-- Employees Policies
+CREATE POLICY "Admins can manage employees" ON public.employees
+    FOR ALL USING (has_role(auth.uid(), 'admin'));
+
+CREATE POLICY "Employees can view own record" ON public.employees
+    FOR SELECT USING (user_id = auth.uid());
+
+CREATE POLICY "Tenant admins can manage employees" ON public.employees
+    FOR ALL USING (tenant_id IN (
+        SELECT tenant_id FROM public.client_tenant_users 
+        WHERE user_id = auth.uid() AND role IN ('super_admin', 'admin')
+    ));
+
+CREATE POLICY "Managers can view team members" ON public.employees
+    FOR SELECT USING (reporting_manager_id IN (
+        SELECT id FROM public.employees WHERE user_id = auth.uid()
+    ));
+
+-- Attendance Records Policies
+CREATE POLICY "Admins can manage attendance" ON public.attendance_records
+    FOR ALL USING (has_role(auth.uid(), 'admin'));
+
+CREATE POLICY "Employees can view own attendance" ON public.attendance_records
+    FOR SELECT USING (employee_id IN (
+        SELECT id FROM public.employees WHERE user_id = auth.uid()
+    ));
+
+CREATE POLICY "Employees can check in/out" ON public.attendance_records
+    FOR INSERT WITH CHECK (employee_id IN (
+        SELECT id FROM public.employees WHERE user_id = auth.uid()
+    ));
+
+CREATE POLICY "Tenant admins can manage attendance" ON public.attendance_records
+    FOR ALL USING (tenant_id IN (
+        SELECT tenant_id FROM public.client_tenant_users 
+        WHERE user_id = auth.uid() AND role IN ('super_admin', 'admin')
+    ));
+
+-- Leave Types Policies
+CREATE POLICY "Anyone can view leave types" ON public.leave_types
+    FOR SELECT USING (is_active = true);
+
+CREATE POLICY "Admins can manage leave types" ON public.leave_types
+    FOR ALL USING (has_role(auth.uid(), 'admin'));
+
+CREATE POLICY "Tenant admins can manage leave types" ON public.leave_types
+    FOR ALL USING (tenant_id IN (
+        SELECT tenant_id FROM public.client_tenant_users 
+        WHERE user_id = auth.uid() AND role IN ('super_admin', 'admin')
+    ));
+
+-- Leave Balances Policies
+CREATE POLICY "Admins can manage leave balances" ON public.leave_balances
+    FOR ALL USING (has_role(auth.uid(), 'admin'));
+
+CREATE POLICY "Employees can view own balance" ON public.leave_balances
+    FOR SELECT USING (employee_id IN (
+        SELECT id FROM public.employees WHERE user_id = auth.uid()
+    ));
+
+CREATE POLICY "Tenant admins can manage leave balances" ON public.leave_balances
+    FOR ALL USING (tenant_id IN (
+        SELECT tenant_id FROM public.client_tenant_users 
+        WHERE user_id = auth.uid() AND role IN ('super_admin', 'admin')
+    ));
+
+-- Leave Requests Policies
+CREATE POLICY "Admins can manage leave requests" ON public.leave_requests
+    FOR ALL USING (has_role(auth.uid(), 'admin'));
+
+CREATE POLICY "Employees can view own requests" ON public.leave_requests
+    FOR SELECT USING (employee_id IN (
+        SELECT id FROM public.employees WHERE user_id = auth.uid()
+    ));
+
+CREATE POLICY "Employees can submit leave requests" ON public.leave_requests
+    FOR INSERT WITH CHECK (employee_id IN (
+        SELECT id FROM public.employees WHERE user_id = auth.uid()
+    ));
+
+CREATE POLICY "Employees can cancel own requests" ON public.leave_requests
+    FOR UPDATE USING (
+        employee_id IN (SELECT id FROM public.employees WHERE user_id = auth.uid())
+        AND status = 'pending'
+    );
+
+CREATE POLICY "Managers can approve team requests" ON public.leave_requests
+    FOR UPDATE USING (
+        approver_id IN (SELECT id FROM public.employees WHERE user_id = auth.uid())
+    );
+
+CREATE POLICY "Tenant admins can manage leave requests" ON public.leave_requests
+    FOR ALL USING (tenant_id IN (
+        SELECT tenant_id FROM public.client_tenant_users 
+        WHERE user_id = auth.uid() AND role IN ('super_admin', 'admin')
+    ));
+
+
+-- ============================================================================
+-- PART 23: HR MODULE - INDEXES
+-- ============================================================================
+
+CREATE INDEX idx_employees_tenant ON public.employees(tenant_id);
+CREATE INDEX idx_employees_user ON public.employees(user_id);
+CREATE INDEX idx_employees_department ON public.employees(tenant_id, department);
+CREATE INDEX idx_employees_manager ON public.employees(reporting_manager_id);
+CREATE INDEX idx_employees_status ON public.employees(employment_status);
+CREATE INDEX idx_employees_code ON public.employees(tenant_id, employee_code);
+
+CREATE INDEX idx_attendance_tenant ON public.attendance_records(tenant_id);
+CREATE INDEX idx_attendance_employee ON public.attendance_records(employee_id);
+CREATE INDEX idx_attendance_date ON public.attendance_records(attendance_date);
+CREATE INDEX idx_attendance_tenant_date ON public.attendance_records(tenant_id, attendance_date);
+
+CREATE INDEX idx_leave_types_tenant ON public.leave_types(tenant_id);
+CREATE INDEX idx_leave_types_active ON public.leave_types(tenant_id, is_active);
+
+CREATE INDEX idx_leave_balances_tenant ON public.leave_balances(tenant_id);
+CREATE INDEX idx_leave_balances_employee ON public.leave_balances(employee_id);
+CREATE INDEX idx_leave_balances_year ON public.leave_balances(tenant_id, year);
+
+CREATE INDEX idx_leave_requests_tenant ON public.leave_requests(tenant_id);
+CREATE INDEX idx_leave_requests_employee ON public.leave_requests(employee_id);
+CREATE INDEX idx_leave_requests_status ON public.leave_requests(status);
+CREATE INDEX idx_leave_requests_approver ON public.leave_requests(approver_id);
+CREATE INDEX idx_leave_requests_dates ON public.leave_requests(start_date, end_date);
+
+
+-- ============================================================================
+-- PART 24: ENABLE REALTIME FOR NEW TABLES
 -- ============================================================================
 
 ALTER PUBLICATION supabase_realtime ADD TABLE public.payroll_runs;
 ALTER PUBLICATION supabase_realtime ADD TABLE public.bgv_requests;
 ALTER PUBLICATION supabase_realtime ADD TABLE public.insurance_claims;
+ALTER PUBLICATION supabase_realtime ADD TABLE public.attendance_records;
+ALTER PUBLICATION supabase_realtime ADD TABLE public.leave_requests;
 
 
 -- ============================================================================
 -- END OF ATLAS DATABASE SCHEMA
+-- Last Updated: December 7, 2025 @ 14:30 UTC
+-- Total Tables: 46 | Functions: 7 | Triggers: 2 | RLS Policies: 60+
 -- ============================================================================
