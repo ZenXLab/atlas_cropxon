@@ -13,6 +13,8 @@ interface TenantContextType {
   setSidebarCollapsed: (collapsed: boolean) => void;
   tenantName: string;
   tenantLogo: string | null;
+  currentPlan: "Starter" | "Pro" | "Business" | "Enterprise";
+  billingCycleEnd: string;
 }
 
 const TenantContext = createContext<TenantContextType | null>(null);
@@ -29,6 +31,8 @@ export const TenantLayout: React.FC = () => {
   const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
   const [tenantName] = useState("ACME Pharma Pvt Ltd");
   const [tenantLogo] = useState<string | null>(null);
+  const [currentPlan] = useState<"Starter" | "Pro" | "Business" | "Enterprise">("Pro");
+  const [billingCycleEnd] = useState("2025-01-31");
   const location = useLocation();
 
   const isOnboarding = location.pathname === "/tenant/onboarding";
@@ -43,9 +47,11 @@ export const TenantLayout: React.FC = () => {
         setSidebarCollapsed,
         tenantName,
         tenantLogo,
+        currentPlan,
+        billingCycleEnd,
       }}
     >
-      <div className="tenant-portal min-h-screen bg-[hsl(220,27%,98%)] flex flex-col">
+      <div className="tenant-portal min-h-screen bg-[#F7F9FC] flex flex-col">
         <TenantHeader />
         
         {isTrialMode && !isOnboarding && <TrialBanner />}
