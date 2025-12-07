@@ -3,22 +3,69 @@ import { FileText, Download, Send, Clock, Shield } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { toast } from "sonner";
+import { supabase } from "@/integrations/supabase/client";
 
-export const PricingLeadCapture = () => {
+interface PricingLeadCaptureProps {
+  onConversion?: () => void;
+  trackEvent?: (eventType: string, metadata?: Record<string, any>) => void;
+  variant?: { id: string; name: string } | null;
+}
+
+export const PricingLeadCapture = ({ onConversion, trackEvent, variant }: PricingLeadCaptureProps) => {
   const [email, setEmail] = useState("");
   const [name, setName] = useState("");
   const [company, setCompany] = useState("");
+  const [isSubmitting, setIsSubmitting] = useState(false);
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!email || !name || !company) {
       toast.error("Please fill in all fields");
       return;
     }
-    toast.success("Quote sent to your email! Check your inbox.");
-    setEmail("");
-    setName("");
-    setCompany("");
+
+    setIsSubmitting(true);
+    
+    try {
+      // Save lead to database
+      const { error } = await supabase.from("leads").insert({
+        name,
+        email,
+        company,
+        source: "pricing_page",
+        status: "new",
+        notes: variant ? `A/B Variant: ${variant.name}` : undefined
+      });
+
+      if (error) throw error;
+
+      // Track conversion event
+      trackEvent?.("lead_form_submitted", {
+        source: "pricing_lead_capture",
+        variant: variant?.name || "control",
+        company
+      });
+
+      // Trigger A/B conversion tracking
+      onConversion?.();
+
+      toast.success("Quote sent to your email! Check your inbox.");
+      setEmail("");
+      setName("");
+      setCompany("");
+    } catch (error) {
+      console.error("Lead capture error:", error);
+      toast.error("Something went wrong. Please try again.");
+    } finally {
+      setIsSubmitting(false);
+    }
+  };
+
+  const handleDownloadClick = () => {
+    trackEvent?.("calculator_download_clicked", {
+      source: "pricing_lead_capture",
+      variant: variant?.name || "control"
+    });
   };
 
   return (
@@ -59,6 +106,7 @@ export const PricingLeadCapture = () => {
           <Button 
             variant="outline" 
             className="border-primary text-primary hover:bg-primary hover:text-primary-foreground"
+            onClick={handleDownloadClick}
           >
             <Download className="w-4 h-4 mr-2" />
             Download Free Calculator
@@ -104,10 +152,11 @@ export const PricingLeadCapture = () => {
             </div>
             <Button 
               type="submit"
+              disabled={isSubmitting}
               className="w-full h-12 bg-gradient-to-r from-primary to-accent hover:opacity-90 text-primary-foreground font-semibold"
             >
               <Send className="w-4 h-4 mr-2" />
-              Get Custom Quote
+              {isSubmitting ? "Sending..." : "Get Custom Quote"}
             </Button>
           </form>
 
