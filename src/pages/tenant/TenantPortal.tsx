@@ -23,6 +23,7 @@ import TenantRiskGovernance from "./TenantRiskGovernance";
 import TenantRequests from "./TenantRequests";
 import TenantNotifications from "./TenantNotifications";
 import TenantManagedOps from "./TenantManagedOps";
+import TenantEmployees from "./TenantEmployees";
 import TenantIntegrations from "./settings/TenantIntegrations";
 import TenantAPIKeys from "./settings/TenantAPIKeys";
 import TenantBilling from "./settings/TenantBilling";
@@ -73,6 +74,7 @@ const TenantPortal: React.FC = () => {
         
         {/* Workforce Management */}
         <Route path="workforce" element={<TenantWorkforce />} />
+        <Route path="employees" element={<TenantEmployees />} />
         <Route path="attendance" element={<TenantAttendance />} />
         <Route path="documents" element={<TenantDocuments />} />
         <Route path="announcements" element={<TenantAnnouncements />} />
