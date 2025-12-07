@@ -6,6 +6,7 @@ import { BrowserRouter, Routes, Route, useLocation } from "react-router-dom";
 import { HelmetProvider } from "react-helmet-async";
 import { AnimatePresence, motion } from "framer-motion";
 import { ClickstreamTracker } from "@/components/ClickstreamTracker";
+import { SessionRecorder } from "@/components/SessionRecorder";
 import { useScrollToTop } from "@/hooks/useScrollToTop";
 import Index from "./pages/Index";
 import Features from "./pages/Features";
@@ -128,6 +129,7 @@ const App = () => (
         <Sonner />
         <BrowserRouter>
           <ClickstreamTracker />
+          <SessionRecorder enabled={true} />
           <AnimatedRoutes />
         </BrowserRouter>
       </TooltipProvider>

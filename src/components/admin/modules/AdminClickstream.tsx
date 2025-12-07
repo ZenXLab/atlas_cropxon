@@ -20,6 +20,7 @@ import { UserJourney } from "./clickstream/UserJourney";
 import { DateRangePicker } from "./clickstream/DateRangePicker";
 import { DeviceAnalytics } from "./clickstream/DeviceAnalytics";
 import { LiveSessionRecording } from "./clickstream/LiveSessionRecording";
+import { RRWebPlayer } from "./clickstream/RRWebPlayer";
 import { ClickstreamLayout } from "./clickstream/ClickstreamLayout";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
 
@@ -318,7 +319,7 @@ export const AdminClickstream = () => {
         return <ClickHeatmap events={events || []} />;
 
       case "session-replay":
-        return <LiveSessionRecording events={events || []} />;
+        return <RRWebPlayer />;
 
       case "device-analytics":
         return <DeviceAnalytics events={events || []} />;

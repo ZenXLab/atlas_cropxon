@@ -1619,6 +1619,48 @@ export type Database = {
         }
         Relationships: []
       }
+      session_recordings: {
+        Row: {
+          created_at: string
+          duration_ms: number | null
+          end_time: string | null
+          event_count: number | null
+          events: Json
+          id: string
+          metadata: Json | null
+          page_count: number | null
+          session_id: string
+          start_time: string
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          duration_ms?: number | null
+          end_time?: string | null
+          event_count?: number | null
+          events?: Json
+          id?: string
+          metadata?: Json | null
+          page_count?: number | null
+          session_id: string
+          start_time?: string
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          duration_ms?: number | null
+          end_time?: string | null
+          event_count?: number | null
+          events?: Json
+          id?: string
+          metadata?: Json | null
+          page_count?: number | null
+          session_id?: string
+          start_time?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
       support_tickets: {
         Row: {
           assigned_to: string | null
