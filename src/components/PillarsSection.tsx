@@ -109,7 +109,7 @@ export const PillarsSection = () => {
             The <span className="text-gradient">8 Pillars</span> of ATLAS
           </h2>
           <p className="text-base lg:text-lg text-muted-foreground">
-            Comprehensive consulting and technology services designed to transform your enterprise.
+            When compliance matters — choose ATLAS. Verify faster. Approve smarter. Scale safer.
           </p>
         </div>
 

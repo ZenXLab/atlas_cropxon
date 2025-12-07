@@ -15,10 +15,11 @@ const Index = () => {
 
   const structuredData = {
     "@context": "https://schema.org",
-    "@type": "Organization",
+    "@type": "SoftwareApplication",
     "name": "CropXon ATLAS",
-    "description": "Enterprise-grade consulting, AI solutions, digital engineering, and technology transformation services",
+    "description": "AI-powered Workforce Operating System - From Hire to Retire and everything in between. Unified HR, Payroll, Compliance, Finance, Recruitment, Projects, and Operations.",
     "url": "https://atlas.cropxon.com",
+    "applicationCategory": "BusinessApplication",
     "logo": "https://atlas.cropxon.com/logo.png",
     "sameAs": [
       "https://twitter.com/CropXon",
@@ -50,9 +51,9 @@ const Index = () => {
   return (
     <>
       <Helmet>
-        <title>CropXon ATLAS | Enterprise Consulting & Digital Transformation Services</title>
-        <meta name="description" content="ATLAS by CropXon - Enterprise-grade consulting, AI solutions, digital engineering, cloud services, and technology transformation. Get custom quotes for your business needs." />
-        <meta name="keywords" content="digital transformation, AI consulting, enterprise solutions, cloud services, DevOps, cybersecurity, managed IT services, UX design, software development, India" />
+        <title>CropXon ATLAS | AI-Powered Workforce Operating System - From Hire to Retire</title>
+        <meta name="description" content="ATLAS by CropXon - The AI-powered Workforce OS that automates HR, Payroll, Compliance, Finance, Recruitment, Projects, and Operations for modern enterprises. From hire to retire and everything in between." />
+        <meta name="keywords" content="workforce management, HR software, payroll automation, compliance management, HRMS, enterprise software, AI HR, workforce OS, India payroll, employee management" />
         <link rel="canonical" href="https://atlas.cropxon.com" />
         
         {/* Open Graph */}
