@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -12,7 +12,9 @@ import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { useEmployeeRole } from "@/hooks/useEmployeeRole";
 import { usePortalDashboardLayout, PortalWidgetConfig, portalWidgetCatalog } from "@/hooks/usePortalDashboardLayout";
+import { useWidgetAccessSync } from "@/hooks/useWidgetAccessSync";
 import { DraggablePortalWidget } from "./DraggablePortalWidget";
+import { RestrictedWidgetsIndicator } from "./RestrictedWidgetsIndicator";
 
 // Import widgets
 import { AttendanceWidget } from "./widgets/AttendanceWidget";
@@ -39,8 +41,19 @@ export const PortalDashboard = ({ userId }: PortalDashboardProps) => {
     applyPreset, resetLayout, presets, availableWidgets, isLibraryOpen, setIsLibraryOpen
   } = usePortalDashboardLayout(role);
   
+  // Real-time sync for widget access changes
+  const { getRestrictedWidgets, lastUpdate } = useWidgetAccessSync(role);
+  const restrictedWidgets = getRestrictedWidgets();
+  
   const [dragOverId, setDragOverId] = useState<string | null>(null);
   const [isDragging, setIsDragging] = useState(false);
+  
+  // Reload layout when widget access changes
+  useEffect(() => {
+    if (lastUpdate) {
+      resetLayout();
+    }
+  }, [lastUpdate]);
 
   const { data: projects } = useQuery({
     queryKey: ["portal-projects", userId],
@@ -161,6 +174,9 @@ export const PortalDashboard = ({ userId }: PortalDashboardProps) => {
           </Button>
         </div>
       </div>
+
+      {/* Restricted Widgets Indicator */}
+      <RestrictedWidgetsIndicator restrictedWidgetIds={restrictedWidgets} />
 
       {/* Edit Mode Bar */}
       {isEditMode && (

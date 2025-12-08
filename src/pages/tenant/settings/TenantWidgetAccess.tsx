@@ -12,6 +12,7 @@ import {
 import { toast } from "sonner";
 import { EmployeeRole } from "@/hooks/useEmployeeRole";
 import { portalWidgetCatalog, PortalWidgetMeta } from "@/hooks/usePortalDashboardLayout";
+import { notifyWidgetAccessUpdate } from "@/hooks/useWidgetAccessSync";
 
 const WIDGET_ACCESS_STORAGE_KEY = "tenant-widget-access-config";
 
@@ -95,6 +96,8 @@ const TenantWidgetAccess: React.FC = () => {
   const handleSave = () => {
     localStorage.setItem(WIDGET_ACCESS_STORAGE_KEY, JSON.stringify(config));
     setHasChanges(false);
+    // Notify other tabs/components about the change
+    notifyWidgetAccessUpdate();
     toast.success("Widget access configuration saved successfully!");
   };
 
@@ -103,6 +106,8 @@ const TenantWidgetAccess: React.FC = () => {
     setConfig(defaultConfig);
     localStorage.removeItem(WIDGET_ACCESS_STORAGE_KEY);
     setHasChanges(false);
+    // Notify other tabs/components about the reset
+    notifyWidgetAccessUpdate();
     toast.info("Widget access reset to defaults");
   };
 
