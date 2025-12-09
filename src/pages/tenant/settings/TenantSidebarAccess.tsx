@@ -5,16 +5,19 @@ import { Switch } from "@/components/ui/switch";
 import { Badge } from "@/components/ui/badge";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { ScrollArea } from "@/components/ui/scroll-area";
 import { 
   Save, RotateCcw, Users, Shield, Receipt, UserCheck, Menu, Copy,
   LayoutDashboard, FolderKanban, FileText, HeadphonesIcon, Calendar,
-  Brain, Settings, Star, BookOpen, Server, ArrowRight
+  Brain, Settings, Star, BookOpen, Server, ArrowRight, History, Clock
 } from "lucide-react";
 import { toast } from "sonner";
 import { EmployeeRole } from "@/hooks/useEmployeeRole";
 import { notifySidebarAccessUpdate } from "@/hooks/useWidgetAccessSync";
+import { formatDistanceToNow } from "date-fns";
 
 export const SIDEBAR_ACCESS_STORAGE_KEY = "tenant-sidebar-access-config";
+export const SIDEBAR_ACCESS_LOG_KEY = "tenant-sidebar-access-logs";
 
 interface RoleSidebarAccess {
   [moduleId: string]: boolean;
@@ -26,6 +29,18 @@ export interface SidebarAccessConfig {
   manager: RoleSidebarAccess;
   finance: RoleSidebarAccess;
   admin: RoleSidebarAccess;
+}
+
+interface AccessLogEntry {
+  id: string;
+  timestamp: string;
+  actionType: 'update' | 'copy' | 'reset' | 'bulk_enable' | 'bulk_disable';
+  roleAffected: string;
+  moduleId?: string;
+  previousValue?: boolean;
+  newValue?: boolean;
+  copyFromRole?: string;
+  adminName: string;
 }
 
 const roles: { id: EmployeeRole; name: string; icon: React.ElementType; color: string }[] = [
@@ -79,6 +94,8 @@ const TenantSidebarAccess: React.FC = () => {
   const [activeRole, setActiveRole] = useState<EmployeeRole>("staff");
   const [hasChanges, setHasChanges] = useState(false);
   const [copyFromRole, setCopyFromRole] = useState<EmployeeRole | "">("");
+  const [activityLogs, setActivityLogs] = useState<AccessLogEntry[]>([]);
+  const [showActivityLog, setShowActivityLog] = useState(false);
 
   useEffect(() => {
     const saved = localStorage.getItem(SIDEBAR_ACCESS_STORAGE_KEY);
@@ -89,9 +106,33 @@ const TenantSidebarAccess: React.FC = () => {
         console.error("Failed to load sidebar access config:", e);
       }
     }
+    
+    // Load activity logs
+    const savedLogs = localStorage.getItem(SIDEBAR_ACCESS_LOG_KEY);
+    if (savedLogs) {
+      try {
+        setActivityLogs(JSON.parse(savedLogs));
+      } catch (e) {
+        console.error("Failed to load activity logs:", e);
+      }
+    }
   }, []);
 
+  const addLogEntry = (entry: Omit<AccessLogEntry, 'id' | 'timestamp' | 'adminName'>) => {
+    const newEntry: AccessLogEntry = {
+      ...entry,
+      id: crypto.randomUUID(),
+      timestamp: new Date().toISOString(),
+      adminName: 'Tenant Admin', // In production, get from auth context
+    };
+    
+    const updatedLogs = [newEntry, ...activityLogs].slice(0, 100); // Keep last 100 entries
+    setActivityLogs(updatedLogs);
+    localStorage.setItem(SIDEBAR_ACCESS_LOG_KEY, JSON.stringify(updatedLogs));
+  };
+
   const handleToggle = (moduleId: string, enabled: boolean) => {
+    const previousValue = config[activeRole][moduleId];
     setConfig(prev => ({
       ...prev,
       [activeRole]: {
@@ -100,6 +141,14 @@ const TenantSidebarAccess: React.FC = () => {
       },
     }));
     setHasChanges(true);
+    
+    addLogEntry({
+      actionType: 'update',
+      roleAffected: activeRole,
+      moduleId,
+      previousValue,
+      newValue: enabled,
+    });
   };
 
   const handleCopyFromRole = () => {
@@ -109,6 +158,13 @@ const TenantSidebarAccess: React.FC = () => {
       [activeRole]: { ...prev[copyFromRole] },
     }));
     setHasChanges(true);
+    
+    addLogEntry({
+      actionType: 'copy',
+      roleAffected: activeRole,
+      copyFromRole,
+    });
+    
     toast.success(`Copied settings from ${roles.find(r => r.id === copyFromRole)?.name} to ${roles.find(r => r.id === activeRole)?.name}`);
     setCopyFromRole("");
   };
@@ -125,12 +181,48 @@ const TenantSidebarAccess: React.FC = () => {
     setConfig(defaultConfig);
     localStorage.removeItem(SIDEBAR_ACCESS_STORAGE_KEY);
     setHasChanges(false);
+    
+    addLogEntry({
+      actionType: 'reset',
+      roleAffected: 'all',
+    });
+    
     notifySidebarAccessUpdate();
     toast.info("Sidebar access reset to defaults");
   };
 
   const getEnabledCount = (role: EmployeeRole) => {
     return Object.values(config[role]).filter(Boolean).length;
+  };
+
+  const getActionLabel = (log: AccessLogEntry) => {
+    const moduleName = sidebarModuleCatalog.find(m => m.id === log.moduleId)?.name;
+    const roleName = roles.find(r => r.id === log.roleAffected)?.name || log.roleAffected;
+    const fromRoleName = roles.find(r => r.id === log.copyFromRole)?.name;
+    
+    switch (log.actionType) {
+      case 'update':
+        return `${log.newValue ? 'Enabled' : 'Disabled'} "${moduleName}" for ${roleName}`;
+      case 'copy':
+        return `Copied ${fromRoleName} settings to ${roleName}`;
+      case 'reset':
+        return 'Reset all settings to defaults';
+      case 'bulk_enable':
+        return `Enabled all modules for ${roleName}`;
+      case 'bulk_disable':
+        return `Disabled all modules for ${roleName}`;
+      default:
+        return 'Configuration change';
+    }
+  };
+
+  const getActionIcon = (actionType: string) => {
+    switch (actionType) {
+      case 'update': return <Settings className="w-3.5 h-3.5" />;
+      case 'copy': return <Copy className="w-3.5 h-3.5" />;
+      case 'reset': return <RotateCcw className="w-3.5 h-3.5" />;
+      default: return <History className="w-3.5 h-3.5" />;
+    }
   };
 
   const currentRole = roles.find(r => r.id === activeRole);
@@ -146,9 +238,20 @@ const TenantSidebarAccess: React.FC = () => {
           <p className="text-sm text-[#6B7280] mt-1">Configure which sidebar modules each employee role can see</p>
         </div>
         <div className="flex items-center gap-2">
+          <Button 
+            variant="outline" 
+            onClick={() => setShowActivityLog(!showActivityLog)} 
+            className="gap-2 border-gray-200"
+          >
+            <History className="w-4 h-4" />
+            Activity Log
+            {activityLogs.length > 0 && (
+              <Badge variant="secondary" className="ml-1">{activityLogs.length}</Badge>
+            )}
+          </Button>
           <Button variant="outline" onClick={handleReset} className="gap-2 border-gray-200">
             <RotateCcw className="w-4 h-4" />
-            Reset to Defaults
+            Reset
           </Button>
           <Button 
             onClick={handleSave} 
@@ -160,6 +263,54 @@ const TenantSidebarAccess: React.FC = () => {
           </Button>
         </div>
       </div>
+
+      {/* Activity Log Panel */}
+      {showActivityLog && (
+        <Card className="border-gray-100 shadow-sm">
+          <CardHeader className="pb-3">
+            <CardTitle className="text-lg flex items-center gap-2">
+              <History className="w-5 h-5 text-[#005EEB]" />
+              Recent Activity
+            </CardTitle>
+            <CardDescription>Last 100 sidebar access changes</CardDescription>
+          </CardHeader>
+          <CardContent>
+            {activityLogs.length === 0 ? (
+              <div className="text-center py-8 text-[#6B7280]">
+                <Clock className="w-12 h-12 mx-auto mb-3 opacity-30" />
+                <p>No activity recorded yet</p>
+              </div>
+            ) : (
+              <ScrollArea className="h-64">
+                <div className="space-y-2">
+                  {activityLogs.map((log) => (
+                    <div 
+                      key={log.id}
+                      className="flex items-start gap-3 p-3 rounded-lg bg-[#F7F9FC] hover:bg-[#F0F3F7] transition-colors"
+                    >
+                      <div className={`w-8 h-8 rounded-lg flex items-center justify-center ${
+                        log.actionType === 'reset' ? 'bg-amber-100 text-amber-600' :
+                        log.actionType === 'copy' ? 'bg-purple-100 text-purple-600' :
+                        log.newValue ? 'bg-green-100 text-green-600' : 'bg-red-100 text-red-600'
+                      }`}>
+                        {getActionIcon(log.actionType)}
+                      </div>
+                      <div className="flex-1 min-w-0">
+                        <p className="text-sm font-medium text-[#0F1E3A]">
+                          {getActionLabel(log)}
+                        </p>
+                        <p className="text-xs text-[#6B7280] mt-0.5">
+                          by {log.adminName} • {formatDistanceToNow(new Date(log.timestamp), { addSuffix: true })}
+                        </p>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              </ScrollArea>
+            )}
+          </CardContent>
+        </Card>
+      )}
 
       {/* Role Tabs */}
       <Tabs value={activeRole} onValueChange={(v) => setActiveRole(v as EmployeeRole)} className="space-y-6">

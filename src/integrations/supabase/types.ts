@@ -1661,6 +1661,56 @@ export type Database = {
         }
         Relationships: []
       }
+      sidebar_access_logs: {
+        Row: {
+          action_type: string
+          admin_user_id: string | null
+          copy_from_role: string | null
+          created_at: string
+          id: string
+          metadata: Json | null
+          module_id: string | null
+          new_value: boolean | null
+          previous_value: boolean | null
+          role_affected: string
+          tenant_id: string | null
+        }
+        Insert: {
+          action_type?: string
+          admin_user_id?: string | null
+          copy_from_role?: string | null
+          created_at?: string
+          id?: string
+          metadata?: Json | null
+          module_id?: string | null
+          new_value?: boolean | null
+          previous_value?: boolean | null
+          role_affected: string
+          tenant_id?: string | null
+        }
+        Update: {
+          action_type?: string
+          admin_user_id?: string | null
+          copy_from_role?: string | null
+          created_at?: string
+          id?: string
+          metadata?: Json | null
+          module_id?: string | null
+          new_value?: boolean | null
+          previous_value?: boolean | null
+          role_affected?: string
+          tenant_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "sidebar_access_logs_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "client_tenants"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       support_tickets: {
         Row: {
           assigned_to: string | null
