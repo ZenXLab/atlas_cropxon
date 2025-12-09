@@ -60,6 +60,7 @@ const ComponentSkeleton = () => (
 export const TraceflowDashboardFull = () => {
   const [activeTab, setActiveTab] = useState("overview");
   const [isRefreshing, setIsRefreshing] = useState(false);
+  const [timeFilter, setTimeFilter] = useState("24h");
   
   // Get auth and subscription info
   const { user, isAdmin } = useTraceflowAuth();
@@ -545,6 +546,8 @@ export const TraceflowDashboardFull = () => {
           activeTab={activeTab}
           onRefresh={handleRefresh}
           isRefreshing={isRefreshing}
+          timeFilter={timeFilter}
+          onTimeFilterChange={setTimeFilter}
         />
         
         <div className="flex-1 p-6 overflow-auto">
