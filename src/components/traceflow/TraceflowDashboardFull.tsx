@@ -42,7 +42,7 @@ import {
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { Link } from "react-router-dom";
-import { useTraceflow } from "@/hooks/useTraceflow";
+import { useTraceflowSessions, useTraceflowStats, useNeuroRouterLogs, useTraceflowUXIssues } from "@/hooks/useTraceflow";
 import { TraceflowSessionReplay } from "./TraceflowSessionReplay";
 import { TraceflowUXIntelligence } from "./TraceflowUXIntelligence";
 import { TraceflowSDK } from "./TraceflowSDK";
@@ -99,14 +99,12 @@ export const TraceflowDashboardFull = () => {
   const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
   
   // Get real data from hooks
-  const { 
-    sessions, 
-    uxIssues, 
-    neuroRouterLogs, 
-    isLoading,
-    refetchSessions,
-    refetchUxIssues
-  } = useTraceflow();
+  const { data: sessions, isLoading: sessionsLoading, refetch: refetchSessions } = useTraceflowSessions({ limit: 50 });
+  const { data: uxIssues, refetch: refetchUxIssues } = useTraceflowUXIssues({ status: 'open' });
+  const { data: stats } = useTraceflowStats();
+  const { data: neuroRouterLogs } = useNeuroRouterLogs(10);
+  
+  const isLoading = sessionsLoading;
 
   // Generate AI insights from real data
   const [aiInsights, setAiInsights] = useState<AIInsightCard[]>([]);
@@ -123,7 +121,7 @@ export const TraceflowDashboardFull = () => {
           id: "frustration-1",
           type: "urgent",
           title: `${frustratingSessions.length} Sessions with High Frustration Detected`,
-          description: `Users showing signs of frustration including rage clicks and dead clicks. Most affected page: ${frustratingSessions[0]?.current_url || '/checkout'}`,
+          description: `Users showing signs of frustration including rage clicks and dead clicks. ${frustratingSessions.length} sessions affected.`,
           impact: "Potential revenue at risk",
           confidence: 94,
           sessionId: frustratingSessions[0]?.session_id,
@@ -157,7 +155,7 @@ export const TraceflowDashboardFull = () => {
           id: "ux-1",
           type: "revenue",
           title: `${criticalIssues.length} Critical UX Issues Need Attention`,
-          description: criticalIssues[0]?.description || "Multiple UI elements affecting user experience detected",
+          description: criticalIssues[0]?.ai_diagnosis || "Multiple UI elements affecting user experience detected",
           impact: "Estimated conversion impact",
           confidence: 87,
           timestamp: "15 min ago",
@@ -276,13 +274,10 @@ export const TraceflowDashboardFull = () => {
                               <Badge variant="outline">{log.selected_llm} / {log.selected_model}</Badge>
                             </div>
                             <span className="text-xs text-muted-foreground">
-                              {log.latency_ms}ms • {log.input_tokens + (log.output_tokens || 0)} tokens
+                              {log.latency_ms}ms
                             </span>
                           </div>
                           <p className="text-sm text-muted-foreground">{log.routing_reason}</p>
-                          {log.cost_estimate && (
-                            <p className="text-xs text-emerald-600 mt-1">Est. cost: ${log.cost_estimate.toFixed(4)}</p>
-                          )}
                         </div>
                       ))
                     ) : (
