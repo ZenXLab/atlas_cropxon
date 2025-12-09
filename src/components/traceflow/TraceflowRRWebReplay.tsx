@@ -110,15 +110,16 @@ export const TraceflowRRWebReplay = () => {
   const containerRef = useRef<HTMLDivElement>(null);
   const liveEventsRef = useRef<any[]>([]);
 
-  // Fetch recordings from database with real-time subscription
+  // Fetch recordings from database - only metadata, not full events (for performance)
   const { data: recordings, isLoading, refetch } = useQuery({
     queryKey: ["traceflow-session-recordings"],
     queryFn: async () => {
+      // Select only metadata columns, not the large events array
       const { data, error } = await supabase
         .from("session_recordings")
-        .select("*")
+        .select("id, session_id, visitor_id, device_fingerprint, ip_address, geolocation, user_agent, pages_visited, start_time, end_time, duration_ms, page_count, event_count, metadata, created_at")
         .order("created_at", { ascending: false })
-        .limit(100);
+        .limit(50);
 
       if (error) {
         console.error("Error fetching recordings:", error);
@@ -127,7 +128,36 @@ export const TraceflowRRWebReplay = () => {
       
       return (data || []) as SessionRecording[];
     },
-    refetchInterval: isLiveMode ? 5000 : false, // Auto-refresh in live mode
+    staleTime: 30000,
+    refetchInterval: isLiveMode ? 5000 : false,
+  });
+
+  // Fetch full events only when a recording is selected
+  // Fetch full events only when a recording is selected
+  const { data: selectedRecordingEvents, isLoading: isLoadingEvents } = useQuery({
+    queryKey: ["traceflow-session-events", selectedRecording?.id],
+    queryFn: async () => {
+      if (!selectedRecording?.id) return null;
+      
+      const { data, error } = await supabase
+        .from("session_recordings")
+        .select("events")
+        .eq("id", selectedRecording.id)
+        .single();
+
+      if (error) {
+        console.error("Error fetching events:", error);
+        throw error;
+      }
+      
+      // Cast events to proper array type
+      const events = data?.events;
+      if (Array.isArray(events)) {
+        return events as any[];
+      }
+      return [];
+    },
+    enabled: !!selectedRecording?.id,
   });
 
   // Real-time subscription for new recordings
@@ -197,9 +227,9 @@ export const TraceflowRRWebReplay = () => {
 
   // Detect session highlights (rage clicks, dead clicks, form abandonment)
   const sessionHighlights = useMemo((): SessionHighlight[] => {
-    if (!selectedRecording?.events?.length) return [];
+    if (!selectedRecordingEvents?.length) return [];
     
-    const events = selectedRecording.events;
+    const events = selectedRecordingEvents;
     const highlights: SessionHighlight[] = [];
     
     // Detect rage clicks (multiple clicks in quick succession)
@@ -228,11 +258,11 @@ export const TraceflowRRWebReplay = () => {
     }
     
     return highlights.sort((a, b) => a.timestamp - b.timestamp);
-  }, [selectedRecording]);
+  }, [selectedRecordingEvents]);
 
-  // Initialize player when recording is selected
+  // Initialize player when recording is selected and events are loaded
   useEffect(() => {
-    if (!selectedRecording || !containerRef.current) return;
+    if (!selectedRecording || !selectedRecordingEvents || !containerRef.current) return;
 
     // Clean up existing player
     if (playerRef.current) {
@@ -241,7 +271,7 @@ export const TraceflowRRWebReplay = () => {
       containerRef.current.innerHTML = "";
     }
 
-    const events = selectedRecording.events;
+    const events = selectedRecordingEvents;
     if (!events || events.length < 2) {
       console.warn("[TRACEFLOW] Not enough events to play:", events?.length);
       return;
@@ -292,7 +322,7 @@ export const TraceflowRRWebReplay = () => {
         playerRef.current.pause();
       }
     };
-  }, [selectedRecording, deviceView]);
+  }, [selectedRecording, selectedRecordingEvents, deviceView]);
 
   const handlePlay = () => {
     if (playerRef.current) {
@@ -325,8 +355,8 @@ export const TraceflowRRWebReplay = () => {
   };
 
   const handleSeekToHighlight = (highlight: SessionHighlight) => {
-    if (playerRef.current && selectedRecording?.events?.length) {
-      const startTime = selectedRecording.events[0]?.timestamp || 0;
+    if (playerRef.current && selectedRecordingEvents?.length) {
+      const startTime = selectedRecordingEvents[0]?.timestamp || 0;
       const relativeTime = highlight.timestamp - startTime;
       playerRef.current.goto(relativeTime);
       toast.info(`Jumped to ${highlight.type.replace('_', ' ')}`);
@@ -558,6 +588,13 @@ export const TraceflowRRWebReplay = () => {
                   <Video className="h-16 w-16 mx-auto mb-4 opacity-30" />
                   <p className="font-medium">Select a session to watch</p>
                   <p className="text-xs">Choose from the list on the left</p>
+                </div>
+              </div>
+            ) : isLoadingEvents ? (
+              <div className="h-[450px] flex items-center justify-center bg-gradient-to-b from-slate-100 to-slate-50 rounded-lg">
+                <div className="text-center text-muted-foreground">
+                  <RefreshCw className="h-8 w-8 mx-auto mb-2 animate-spin text-[#0B3D91]" />
+                  <p className="font-medium">Loading session events...</p>
                 </div>
               </div>
             ) : (
