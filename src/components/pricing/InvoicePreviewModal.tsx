@@ -56,12 +56,16 @@ export const InvoicePreviewModal = ({
   const currencyIcon = region === 'india' ? IndianRupee : Globe;
   const CurrencyIcon = currencyIcon;
   
-  // Generate invoice ID on mount
+  const [invoiceStored, setInvoiceStored] = useState(false);
+
+  // Generate invoice ID on mount and store in database
   useEffect(() => {
     if (isOpen) {
       const timestamp = Date.now().toString(36).toUpperCase();
       const random = Math.random().toString(36).substring(2, 6).toUpperCase();
-      setInvoiceId(`ATLS-INV-${timestamp}-${random}`);
+      const newInvoiceId = `ATLS-INV-${timestamp}-${random}`;
+      setInvoiceId(newInvoiceId);
+      setInvoiceStored(false);
       
       trackEvent("invoice_preview_opened", {
         region,
@@ -96,6 +100,41 @@ export const InvoicePreviewModal = ({
     isAnnual,
     currency,
   });
+
+  // Store invoice in database
+  const storeInvoice = async (status: 'draft' | 'sent' | 'paid' | 'overdue' | 'cancelled' = 'draft') => {
+    if (invoiceStored && status === 'draft') return;
+    
+    try {
+      const { error } = await supabase
+        .from('invoices')
+        .upsert([{
+          invoice_number: invoiceId,
+          amount: subtotal,
+          tax_percent: region === 'india' ? 18 : 0,
+          tax_amount: gstAmount,
+          total_amount: totalAmount,
+          status: status,
+          user_id: user?.id || null,
+          notes: JSON.stringify({
+            plan_name: plan?.name,
+            addons: addons.map(a => ({ name: a.name, price: a.price })),
+            region,
+            isAnnual,
+            currency,
+          }),
+        }], { onConflict: 'invoice_number' });
+
+      if (error) {
+        console.error("Error storing invoice:", error);
+      } else {
+        setInvoiceStored(true);
+        console.log("Invoice stored successfully:", invoiceId);
+      }
+    } catch (error) {
+      console.error("Error storing invoice:", error);
+    }
+  };
 
   // Send email functionality
   const handleSendEmail = async () => {
@@ -251,6 +290,9 @@ export const InvoicePreviewModal = ({
         await new Promise(resolve => script.onload = resolve);
       }
 
+      // Store invoice before payment
+      await storeInvoice('sent');
+
       // Initialize Razorpay checkout
       const options = {
         key: data.keyId,
@@ -259,12 +301,13 @@ export const InvoicePreviewModal = ({
         name: 'ATLAS by CropXon',
         description: `${plan.name} - ${isAnnual ? 'Annual' : 'Monthly'} Plan`,
         order_id: data.orderId,
-        handler: function(response: any) {
+        handler: async function(response: any) {
           trackEvent("payment_success", {
             invoiceId,
             orderId: data.orderId,
             paymentId: response.razorpay_payment_id
           });
+          await storeInvoice('paid');
           toast({
             title: "Payment Successful!",
             description: "Thank you for your purchase. You will receive a confirmation email shortly."
