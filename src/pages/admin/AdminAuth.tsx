@@ -30,8 +30,12 @@ const AdminAuth = () => {
   const navigate = useNavigate();
   const { enableDevMode } = useAuth();
 
-  // Skip login for development/testing
+  // Skip login for development/testing - ONLY works in development builds
   const handleSkipLogin = () => {
+    if (!import.meta.env.DEV) {
+      toast.error("Dev mode is not available in production");
+      return;
+    }
     enableDevMode("admin");
     toast.success("Development mode: Admin access enabled");
     navigate("/admin");
@@ -106,13 +110,16 @@ const AdminAuth = () => {
       const otp = generateOTP();
       setGeneratedOtp(otp);
       
-      // In a real scenario, you would send this via email edge function
-      // For now, we'll show it in the console and a toast for demo purposes
-      console.log("Admin 2FA OTP:", otp);
-      toast.info(`2FA Code sent to ${validated.email}`, {
-        description: `Demo mode: Your code is ${otp}`,
-        duration: 10000,
-      });
+      // Only show OTP in development builds - NEVER in production
+      if (import.meta.env.DEV) {
+        console.log("Admin 2FA OTP (DEV ONLY):", otp);
+        toast.info(`2FA Code sent to ${validated.email}`, {
+          description: `Dev mode: Your code is ${otp}`,
+          duration: 10000,
+        });
+      } else {
+        toast.info(`2FA Code sent to ${validated.email}`);
+      }
 
       setStep('otp');
     } catch (error) {
@@ -140,11 +147,15 @@ const AdminAuth = () => {
   const handleResendOtp = () => {
     const otp = generateOTP();
     setGeneratedOtp(otp);
-    console.log("New Admin 2FA OTP:", otp);
-    toast.info("New verification code sent", {
-      description: `Demo mode: Your code is ${otp}`,
-      duration: 10000,
-    });
+    if (import.meta.env.DEV) {
+      console.log("New Admin 2FA OTP (DEV ONLY):", otp);
+      toast.info("New verification code sent", {
+        description: `Dev mode: Your code is ${otp}`,
+        duration: 10000,
+      });
+    } else {
+      toast.info("New verification code sent to your email");
+    }
   };
 
   return (
@@ -275,25 +286,29 @@ const AdminAuth = () => {
                   )}
                 </Button>
 
-                {/* Skip Button for Development */}
-                <div className="relative my-4">
-                  <div className="absolute inset-0 flex items-center">
-                    <span className="w-full border-t border-[#1E3A4A]" />
-                  </div>
-                  <div className="relative flex justify-center text-xs uppercase">
-                    <span className="bg-[#0F1A2A] px-2 text-[#6B8A8E]">Development Only</span>
-                  </div>
-                </div>
-                
-                <Button 
-                  type="button" 
-                  variant="outline" 
-                  className="w-full h-11 gap-2 border-dashed border-[#1E3A4A] text-[#6B8A8E] hover:text-[#4FF2F2] hover:border-[#00A6A6] bg-transparent rounded-xl transition-all" 
-                  onClick={handleSkipLogin}
-                >
-                  <SkipForward className="h-4 w-4" />
-                  Skip Login (Dev Mode)
-                </Button>
+                {/* Skip Button for Development - Only visible in dev builds */}
+                {import.meta.env.DEV && (
+                  <>
+                    <div className="relative my-4">
+                      <div className="absolute inset-0 flex items-center">
+                        <span className="w-full border-t border-[#1E3A4A]" />
+                      </div>
+                      <div className="relative flex justify-center text-xs uppercase">
+                        <span className="bg-[#0F1A2A] px-2 text-[#6B8A8E]">Development Only</span>
+                      </div>
+                    </div>
+                    
+                    <Button 
+                      type="button" 
+                      variant="outline" 
+                      className="w-full h-11 gap-2 border-dashed border-[#1E3A4A] text-[#6B8A8E] hover:text-[#4FF2F2] hover:border-[#00A6A6] bg-transparent rounded-xl transition-all" 
+                      onClick={handleSkipLogin}
+                    >
+                      <SkipForward className="h-4 w-4" />
+                      Skip Login (Dev Mode)
+                    </Button>
+                  </>
+                )}
               </form>
             </>
           ) : (

@@ -9,25 +9,29 @@ export const useUserRole = () => {
 
   useEffect(() => {
     const checkAdminRole = async () => {
-      // Check for dev mode first
-      const devMode = localStorage.getItem(DEV_MODE_KEY) === "true";
-      const devType = localStorage.getItem(DEV_MODE_TYPE_KEY);
+      // Dev mode ONLY works in development builds
+      const isDevBuild = import.meta.env.DEV === true;
       
-      if (devMode && devType === "admin") {
-        setIsAdmin(true);
-        setLoading(false);
-        return;
+      if (isDevBuild) {
+        const devMode = localStorage.getItem(DEV_MODE_KEY) === "true";
+        const devType = localStorage.getItem(DEV_MODE_TYPE_KEY);
+        
+        if (devMode && devType === "admin") {
+          setIsAdmin(true);
+          setLoading(false);
+          return;
+        }
+
+        // Skip DB check for dev mode users in development
+        if (user?.id.startsWith("dev-")) {
+          setIsAdmin(devType === "admin");
+          setLoading(false);
+          return;
+        }
       }
 
       if (!user) {
         setIsAdmin(false);
-        setLoading(false);
-        return;
-      }
-
-      // Skip DB check for dev mode users
-      if (user.id.startsWith("dev-")) {
-        setIsAdmin(devType === "admin");
         setLoading(false);
         return;
       }
