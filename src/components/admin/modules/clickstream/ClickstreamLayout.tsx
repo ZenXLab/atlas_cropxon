@@ -14,7 +14,10 @@ import {
   ChevronRight,
   ChevronDown,
   Layers,
-  Shield
+  Shield,
+  Brain,
+  FormInput,
+  GitCompare
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { Badge } from "@/components/ui/badge";
@@ -89,6 +92,20 @@ const navItems: NavItem[] = [
     ],
   },
   {
+    id: "form-analytics",
+    label: "Form Analytics",
+    icon: FormInput,
+    description: "Field-level form insights",
+    badge: "New",
+  },
+  {
+    id: "ai-struggle",
+    label: "AI Struggle Detection",
+    icon: Brain,
+    description: "AI-powered UX insights",
+    badge: "AI",
+  },
+  {
     id: "session-replay",
     label: "Session Replay",
     icon: Video,
@@ -100,7 +117,6 @@ const navItems: NavItem[] = [
     label: "Device & Browser",
     icon: Monitor,
     description: "Device breakdown",
-    badge: "New",
   },
   {
     id: "geo-analytics",
@@ -119,6 +135,12 @@ const navItems: NavItem[] = [
     label: "Privacy Controls",
     icon: Shield,
     description: "Recording privacy settings",
+  },
+  {
+    id: "comparison",
+    label: "Compare Platforms",
+    icon: GitCompare,
+    description: "ATLAS vs Glassbox vs FullStory",
   },
 ];
 
