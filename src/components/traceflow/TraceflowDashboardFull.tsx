@@ -1,0 +1,642 @@
+import { useState, useEffect } from "react";
+import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
+import { Button } from "@/components/ui/button";
+import { Badge } from "@/components/ui/badge";
+import { ScrollArea } from "@/components/ui/scroll-area";
+import { Input } from "@/components/ui/input";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { 
+  LayoutDashboard, 
+  Video, 
+  Activity, 
+  Zap, 
+  GitBranch, 
+  Cpu, 
+  Bot, 
+  Plug2, 
+  Settings,
+  Search,
+  Bell,
+  Plus,
+  TrendingUp,
+  TrendingDown,
+  AlertTriangle,
+  Play,
+  Clock,
+  Users,
+  DollarSign,
+  Eye,
+  MousePointer,
+  Sparkles,
+  ArrowRight,
+  RefreshCw,
+  ChevronLeft,
+  Crown,
+  Code2,
+  Map,
+  Layers,
+  Brain,
+  Target,
+  BarChart3,
+  PieChart
+} from "lucide-react";
+import { cn } from "@/lib/utils";
+import { Link } from "react-router-dom";
+import { useTraceflow } from "@/hooks/useTraceflow";
+import { TraceflowSessionReplay } from "./TraceflowSessionReplay";
+import { TraceflowUXIntelligence } from "./TraceflowUXIntelligence";
+import { TraceflowSDK } from "./TraceflowSDK";
+import { AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, BarChart, Bar } from 'recharts';
+
+// Mock data for charts - will be replaced with real data
+const eventData = [
+  { time: '00:00', events: 2400, errors: 24 },
+  { time: '04:00', events: 1398, errors: 12 },
+  { time: '08:00', events: 4800, errors: 45 },
+  { time: '12:00', events: 6200, errors: 62 },
+  { time: '16:00', events: 5800, errors: 38 },
+  { time: '20:00', events: 4000, errors: 28 },
+  { time: '24:00', events: 3200, errors: 18 },
+];
+
+const pageData = [
+  { page: '/home', views: 12400, bounceRate: 24 },
+  { page: '/pricing', views: 8200, bounceRate: 45 },
+  { page: '/checkout', views: 4100, bounceRate: 68 },
+  { page: '/signup', views: 3800, bounceRate: 32 },
+  { page: '/dashboard', views: 2900, bounceRate: 12 },
+];
+
+interface AIInsightCard {
+  id: string;
+  type: "urgent" | "revenue" | "churn" | "conversion" | "error";
+  title: string;
+  description: string;
+  impact: string;
+  confidence: number;
+  sessionId?: string;
+  timestamp: string;
+  llmUsed?: string;
+}
+
+const sidebarItems = [
+  { icon: LayoutDashboard, label: "Overview", id: "overview" },
+  { icon: Video, label: "Sessions", id: "sessions", badge: "Live" },
+  { icon: MousePointer, label: "UX Intelligence", id: "ux" },
+  { icon: Map, label: "Heatmaps", id: "heatmaps" },
+  { icon: GitBranch, label: "Funnels", id: "funnels" },
+  { icon: Brain, label: "AI Cortex", id: "ai" },
+  { icon: Bot, label: "NeuroRouter", id: "neurorouter", badge: "New" },
+  { icon: Code2, label: "SDK Setup", id: "sdk" },
+  { icon: Plug2, label: "Integrations", id: "integrations" },
+  { icon: Settings, label: "Settings", id: "settings" },
+];
+
+export const TraceflowDashboardFull = () => {
+  const [activeTab, setActiveTab] = useState("overview");
+  const [selectedInsight, setSelectedInsight] = useState<string | null>(null);
+  const [activeFilter, setActiveFilter] = useState("Last 24h");
+  const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
+  
+  // Get real data from hooks
+  const { 
+    sessions, 
+    uxIssues, 
+    neuroRouterLogs, 
+    isLoading,
+    refetchSessions,
+    refetchUxIssues
+  } = useTraceflow();
+
+  // Generate AI insights from real data
+  const [aiInsights, setAiInsights] = useState<AIInsightCard[]>([]);
+  
+  useEffect(() => {
+    // Generate insights based on real session data
+    const insights: AIInsightCard[] = [];
+    
+    if (sessions && sessions.length > 0) {
+      // Find sessions with high frustration
+      const frustratingSessions = sessions.filter(s => (s.frustration_score || 0) > 50);
+      if (frustratingSessions.length > 0) {
+        insights.push({
+          id: "frustration-1",
+          type: "urgent",
+          title: `${frustratingSessions.length} Sessions with High Frustration Detected`,
+          description: `Users showing signs of frustration including rage clicks and dead clicks. Most affected page: ${frustratingSessions[0]?.current_url || '/checkout'}`,
+          impact: "Potential revenue at risk",
+          confidence: 94,
+          sessionId: frustratingSessions[0]?.session_id,
+          timestamp: "Just now",
+          llmUsed: "DeepSeek Reasoner"
+        });
+      }
+      
+      // Rage click detection
+      const rageClickSessions = sessions.filter(s => (s.rage_click_count || 0) > 0);
+      if (rageClickSessions.length > 0) {
+        insights.push({
+          id: "rage-1",
+          type: "error",
+          title: "Rage Click Pattern Detected",
+          description: `${rageClickSessions.reduce((acc, s) => acc + (s.rage_click_count || 0), 0)} rage clicks across ${rageClickSessions.length} sessions. Indicates UI responsiveness issues.`,
+          impact: `${rageClickSessions.length} affected sessions`,
+          confidence: 92,
+          sessionId: rageClickSessions[0]?.session_id,
+          timestamp: "5 min ago",
+          llmUsed: "Gemini 2.5 Vision"
+        });
+      }
+    }
+    
+    // Add UX issue insights
+    if (uxIssues && uxIssues.length > 0) {
+      const criticalIssues = uxIssues.filter(i => i.severity === 'critical' || i.severity === 'high');
+      if (criticalIssues.length > 0) {
+        insights.push({
+          id: "ux-1",
+          type: "revenue",
+          title: `${criticalIssues.length} Critical UX Issues Need Attention`,
+          description: criticalIssues[0]?.description || "Multiple UI elements affecting user experience detected",
+          impact: "Estimated conversion impact",
+          confidence: 87,
+          timestamp: "15 min ago",
+          llmUsed: "Claude 4 Code"
+        });
+      }
+    }
+
+    // Add default insights if no real data
+    if (insights.length === 0) {
+      insights.push({
+        id: "demo-1",
+        type: "conversion",
+        title: "Funnel Optimization Opportunity",
+        description: "AI analysis suggests simplifying the checkout flow could increase conversions by 23%",
+        impact: "+₹1.2M/month projected",
+        confidence: 82,
+        timestamp: "Demo data",
+        llmUsed: "OpenAI GPT-5"
+      });
+    }
+    
+    setAiInsights(insights);
+  }, [sessions, uxIssues]);
+
+  const getInsightIcon = (type: string) => {
+    switch (type) {
+      case "urgent": return <AlertTriangle className="h-4 w-4 text-red-500" />;
+      case "revenue": return <DollarSign className="h-4 w-4 text-amber-500" />;
+      case "churn": return <Users className="h-4 w-4 text-purple-500" />;
+      case "conversion": return <TrendingUp className="h-4 w-4 text-emerald-500" />;
+      case "error": return <Zap className="h-4 w-4 text-red-500" />;
+      default: return <Sparkles className="h-4 w-4 text-blue-500" />;
+    }
+  };
+
+  const getInsightBadge = (type: string) => {
+    switch (type) {
+      case "urgent": return <Badge variant="destructive" className="text-[10px]">Urgent</Badge>;
+      case "revenue": return <Badge className="bg-amber-500/10 text-amber-600 text-[10px]">Revenue</Badge>;
+      case "churn": return <Badge className="bg-purple-500/10 text-purple-600 text-[10px]">Churn Risk</Badge>;
+      case "conversion": return <Badge className="bg-emerald-500/10 text-emerald-600 text-[10px]">Opportunity</Badge>;
+      case "error": return <Badge variant="destructive" className="text-[10px]">Error</Badge>;
+      default: return null;
+    }
+  };
+
+  const renderContent = () => {
+    switch (activeTab) {
+      case "sessions":
+        return <TraceflowSessionReplay />;
+      case "ux":
+      case "heatmaps":
+        return <TraceflowUXIntelligence />;
+      case "sdk":
+        return <TraceflowSDK />;
+      case "neurorouter":
+        return (
+          <div className="space-y-6">
+            <div className="flex items-center justify-between">
+              <div>
+                <h2 className="text-2xl font-bold">NeuroRouter AI</h2>
+                <p className="text-muted-foreground">Multi-LLM orchestration and task routing</p>
+              </div>
+              <Button onClick={() => {}} className="bg-gradient-to-r from-[#0B3D91] to-[#00C2D8]">
+                <RefreshCw className="h-4 w-4 mr-2" />
+                Refresh Logs
+              </Button>
+            </div>
+            
+            {/* LLM Usage Stats */}
+            <div className="grid grid-cols-4 gap-4">
+              {[
+                { name: "DeepSeek", tasks: 245, icon: Brain, color: "from-blue-500 to-indigo-600", specialty: "Reasoning" },
+                { name: "Gemini 2.5", tasks: 189, icon: Eye, color: "from-purple-500 to-pink-600", specialty: "Vision" },
+                { name: "Claude 4", tasks: 156, icon: Code2, color: "from-amber-500 to-orange-600", specialty: "Code" },
+                { name: "GPT-5", tasks: 134, icon: Sparkles, color: "from-emerald-500 to-teal-600", specialty: "General" },
+              ].map((llm) => (
+                <Card key={llm.name} className="border-0 shadow-lg overflow-hidden">
+                  <div className={cn("h-1 bg-gradient-to-r", llm.color)} />
+                  <CardContent className="p-4">
+                    <div className="flex items-center justify-between mb-3">
+                      <div className={cn("w-10 h-10 rounded-lg bg-gradient-to-br flex items-center justify-center", llm.color)}>
+                        <llm.icon className="h-5 w-5 text-white" />
+                      </div>
+                      <Badge variant="secondary" className="text-xs">{llm.specialty}</Badge>
+                    </div>
+                    <h4 className="font-semibold">{llm.name}</h4>
+                    <p className="text-2xl font-bold mt-1">{llm.tasks}</p>
+                    <p className="text-xs text-muted-foreground">tasks routed</p>
+                  </CardContent>
+                </Card>
+              ))}
+            </div>
+
+            {/* NeuroRouter Logs */}
+            <Card className="border-0 shadow-lg">
+              <CardHeader>
+                <CardTitle>Recent Routing Decisions</CardTitle>
+                <CardDescription>AI task routing log with model selection reasoning</CardDescription>
+              </CardHeader>
+              <CardContent>
+                <ScrollArea className="h-[400px]">
+                  <div className="space-y-3">
+                    {neuroRouterLogs && neuroRouterLogs.length > 0 ? (
+                      neuroRouterLogs.map((log, index) => (
+                        <div
+                          key={log.id}
+                          className="p-4 rounded-lg border bg-muted/30 animate-fade-in"
+                          style={{ animationDelay: `${index * 50}ms` }}
+                        >
+                          <div className="flex items-center justify-between mb-2">
+                            <div className="flex items-center gap-2">
+                              <Badge className="bg-[#0B3D91]/10 text-[#0B3D91]">{log.task_type}</Badge>
+                              <span className="text-xs text-muted-foreground">→</span>
+                              <Badge variant="outline">{log.selected_llm} / {log.selected_model}</Badge>
+                            </div>
+                            <span className="text-xs text-muted-foreground">
+                              {log.latency_ms}ms • {log.input_tokens + (log.output_tokens || 0)} tokens
+                            </span>
+                          </div>
+                          <p className="text-sm text-muted-foreground">{log.routing_reason}</p>
+                          {log.cost_estimate && (
+                            <p className="text-xs text-emerald-600 mt-1">Est. cost: ${log.cost_estimate.toFixed(4)}</p>
+                          )}
+                        </div>
+                      ))
+                    ) : (
+                      <div className="text-center py-8 text-muted-foreground">
+                        <Brain className="h-12 w-12 mx-auto mb-3 opacity-30" />
+                        <p>No routing logs yet. Run an AI analysis to see NeuroRouter in action.</p>
+                      </div>
+                    )}
+                  </div>
+                </ScrollArea>
+              </CardContent>
+            </Card>
+          </div>
+        );
+      default:
+        return (
+          <>
+            {/* Stats Row */}
+            <div className="grid grid-cols-4 gap-4 mb-6">
+              {[
+                { label: "Active Sessions", value: sessions?.length || 0, change: "+12%", icon: Eye, trend: "up" },
+                { label: "Events Captured", value: sessions?.reduce((acc, s) => acc + (s.event_count || 0), 0) || "0", change: "+8%", icon: Activity, trend: "up" },
+                { label: "UX Issues", value: uxIssues?.length || 0, change: "-15%", icon: AlertTriangle, trend: "down" },
+                { label: "AI Tasks", value: neuroRouterLogs?.length || 0, change: "+45%", icon: Brain, trend: "up" },
+              ].map((stat) => (
+                <Card key={stat.label} className="bg-white/70 backdrop-blur border-0 shadow-sm hover:shadow-md transition-shadow">
+                  <CardContent className="p-4">
+                    <div className="flex items-center justify-between">
+                      <div>
+                        <p className="text-xs text-muted-foreground">{stat.label}</p>
+                        <p className="text-2xl font-bold mt-1">{typeof stat.value === 'number' ? stat.value.toLocaleString() : stat.value}</p>
+                        <div className="flex items-center gap-1 mt-1">
+                          {stat.trend === "up" ? (
+                            <TrendingUp className="h-3 w-3 text-emerald-500" />
+                          ) : (
+                            <TrendingDown className="h-3 w-3 text-red-500" />
+                          )}
+                          <span className={cn(
+                            "text-xs font-medium",
+                            stat.trend === "up" ? "text-emerald-600" : "text-red-600"
+                          )}>{stat.change}</span>
+                        </div>
+                      </div>
+                      <div className="h-10 w-10 rounded-lg bg-gradient-to-br from-[#0B3D91]/10 to-[#00C2D8]/10 flex items-center justify-center">
+                        <stat.icon className="h-5 w-5 text-[#0B3D91]" />
+                      </div>
+                    </div>
+                  </CardContent>
+                </Card>
+              ))}
+            </div>
+
+            {/* Charts Row */}
+            <div className="grid lg:grid-cols-2 gap-6 mb-6">
+              <Card className="border-0 shadow-lg">
+                <CardHeader className="pb-2">
+                  <CardTitle className="text-base">Events Over Time</CardTitle>
+                </CardHeader>
+                <CardContent>
+                  <div className="h-[200px]">
+                    <ResponsiveContainer width="100%" height="100%">
+                      <AreaChart data={eventData}>
+                        <defs>
+                          <linearGradient id="colorEvents" x1="0" y1="0" x2="0" y2="1">
+                            <stop offset="5%" stopColor="#0B3D91" stopOpacity={0.3}/>
+                            <stop offset="95%" stopColor="#0B3D91" stopOpacity={0}/>
+                          </linearGradient>
+                        </defs>
+                        <CartesianGrid strokeDasharray="3 3" stroke="#e5e7eb" />
+                        <XAxis dataKey="time" tick={{ fontSize: 11 }} stroke="#9ca3af" />
+                        <YAxis tick={{ fontSize: 11 }} stroke="#9ca3af" />
+                        <Tooltip />
+                        <Area type="monotone" dataKey="events" stroke="#0B3D91" fill="url(#colorEvents)" strokeWidth={2} />
+                      </AreaChart>
+                    </ResponsiveContainer>
+                  </div>
+                </CardContent>
+              </Card>
+
+              <Card className="border-0 shadow-lg">
+                <CardHeader className="pb-2">
+                  <CardTitle className="text-base">Top Pages by Views</CardTitle>
+                </CardHeader>
+                <CardContent>
+                  <div className="h-[200px]">
+                    <ResponsiveContainer width="100%" height="100%">
+                      <BarChart data={pageData} layout="vertical">
+                        <CartesianGrid strokeDasharray="3 3" stroke="#e5e7eb" />
+                        <XAxis type="number" tick={{ fontSize: 11 }} stroke="#9ca3af" />
+                        <YAxis dataKey="page" type="category" tick={{ fontSize: 11 }} stroke="#9ca3af" width={80} />
+                        <Tooltip />
+                        <Bar dataKey="views" fill="#00C2D8" radius={[0, 4, 4, 0]} />
+                      </BarChart>
+                    </ResponsiveContainer>
+                  </div>
+                </CardContent>
+              </Card>
+            </div>
+
+            {/* AI Insights Stream */}
+            <Card className="bg-white/70 backdrop-blur border-0 shadow-lg">
+              <CardHeader className="pb-3">
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center gap-2">
+                    <div className="h-8 w-8 rounded-lg bg-gradient-to-br from-[#0B3D91] to-[#00C2D8] flex items-center justify-center">
+                      <Sparkles className="h-4 w-4 text-white" />
+                    </div>
+                    <div>
+                      <CardTitle className="text-base">AI Analyst Insights</CardTitle>
+                      <CardDescription className="text-xs">Real-time intelligence powered by NeuroRouter</CardDescription>
+                    </div>
+                  </div>
+                  <Button 
+                    variant="ghost" 
+                    size="sm" 
+                    className="text-muted-foreground"
+                    onClick={() => {
+                      refetchSessions();
+                      refetchUxIssues();
+                    }}
+                  >
+                    <RefreshCw className={cn("h-3 w-3 mr-1", isLoading && "animate-spin")} />
+                    Refresh
+                  </Button>
+                </div>
+              </CardHeader>
+              <CardContent>
+                <ScrollArea className="h-[350px] pr-4">
+                  <div className="space-y-3">
+                    {aiInsights.map((insight, index) => (
+                      <div
+                        key={insight.id}
+                        onClick={() => setSelectedInsight(insight.id)}
+                        className={cn(
+                          "p-4 rounded-xl border bg-white/80 cursor-pointer transition-all duration-300 hover:shadow-md animate-fade-in",
+                          selectedInsight === insight.id && "ring-2 ring-[#00C2D8]/50 shadow-lg",
+                          insight.type === "urgent" && "border-l-4 border-l-red-500"
+                        )}
+                        style={{ animationDelay: `${index * 80}ms` }}
+                      >
+                        <div className="flex items-start justify-between gap-3">
+                          <div className="flex items-start gap-3">
+                            <div className="mt-0.5">{getInsightIcon(insight.type)}</div>
+                            <div className="flex-1">
+                              <div className="flex items-center gap-2 mb-1 flex-wrap">
+                                {getInsightBadge(insight.type)}
+                                {insight.llmUsed && (
+                                  <Badge variant="outline" className="text-[9px] bg-[#0B3D91]/5">
+                                    <Brain className="h-2.5 w-2.5 mr-1" />
+                                    {insight.llmUsed}
+                                  </Badge>
+                                )}
+                                <span className="text-xs text-muted-foreground">{insight.timestamp}</span>
+                              </div>
+                              <h4 className="font-medium text-sm mb-1">{insight.title}</h4>
+                              <p className="text-xs text-muted-foreground leading-relaxed">{insight.description}</p>
+                              <div className="flex items-center gap-3 mt-2">
+                                <span className="text-xs font-medium text-[#FF8A00]">{insight.impact}</span>
+                                <span className="text-xs text-muted-foreground">
+                                  Confidence: <span className="font-medium">{insight.confidence}%</span>
+                                </span>
+                              </div>
+                            </div>
+                          </div>
+                          <div className="flex flex-col gap-1">
+                            {insight.sessionId && (
+                              <Button 
+                                size="sm" 
+                                variant="ghost" 
+                                className="h-7 text-xs"
+                                onClick={(e) => {
+                                  e.stopPropagation();
+                                  setActiveTab("sessions");
+                                }}
+                              >
+                                <Play className="h-3 w-3 mr-1" />
+                                Replay
+                              </Button>
+                            )}
+                            <Button size="sm" variant="ghost" className="h-7 text-xs text-[#0B3D91]">
+                              Create Ticket
+                              <ArrowRight className="h-3 w-3 ml-1" />
+                            </Button>
+                          </div>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                </ScrollArea>
+              </CardContent>
+            </Card>
+          </>
+        );
+    }
+  };
+
+  return (
+    <div className="min-h-screen bg-gradient-to-br from-slate-50 via-white to-blue-50/30 flex">
+      {/* Sidebar */}
+      <aside className={cn(
+        "bg-slate-900 text-white flex flex-col transition-all duration-300 sticky top-0 h-screen",
+        sidebarCollapsed ? "w-16" : "w-64"
+      )}>
+        {/* Logo */}
+        <div className="p-4 border-b border-slate-800">
+          <Link to="/traceflow" className="flex items-center gap-3">
+            <div className="relative">
+              <div className="absolute inset-0 bg-[#00C2D8]/30 blur-xl rounded-full" />
+              <div className="relative w-10 h-10 rounded-xl bg-gradient-to-br from-[#0B3D91] to-[#00C2D8] flex items-center justify-center">
+                <Activity className="h-5 w-5 text-white" />
+              </div>
+            </div>
+            {!sidebarCollapsed && (
+              <div>
+                <div className="flex items-center gap-2">
+                  <span className="font-bold text-lg tracking-tight">TRACEFLOW</span>
+                  <Crown className="h-3 w-3 text-[#FF8A00]" />
+                </div>
+                <span className="text-[10px] text-slate-400 uppercase tracking-wider">DXI Engine</span>
+              </div>
+            )}
+          </Link>
+        </div>
+
+        {/* Back to Landing */}
+        <div className="px-3 py-2 border-b border-slate-800">
+          <Link to="/traceflow">
+            <Button 
+              variant="ghost" 
+              size="sm" 
+              className={cn(
+                "w-full text-slate-400 hover:text-white hover:bg-slate-800",
+                sidebarCollapsed && "justify-center px-2"
+              )}
+            >
+              <ChevronLeft className="h-4 w-4" />
+              {!sidebarCollapsed && <span className="ml-2">Back to Product</span>}
+            </Button>
+          </Link>
+        </div>
+
+        {/* Navigation */}
+        <nav className="flex-1 p-3 space-y-1 overflow-y-auto">
+          {sidebarItems.map((item) => (
+            <button
+              key={item.id}
+              onClick={() => setActiveTab(item.id)}
+              className={cn(
+                "w-full flex items-center gap-3 px-3 py-2.5 rounded-xl transition-all group text-left",
+                activeTab === item.id
+                  ? "bg-gradient-to-r from-[#0B3D91] to-[#00C2D8] text-white shadow-lg shadow-[#00C2D8]/25"
+                  : "text-slate-400 hover:text-white hover:bg-slate-800"
+              )}
+            >
+              <item.icon className={cn(
+                "h-5 w-5 transition-transform group-hover:scale-110 flex-shrink-0",
+                activeTab === item.id && "text-white"
+              )} />
+              {!sidebarCollapsed && (
+                <div className="flex-1 flex items-center justify-between">
+                  <span className="text-sm font-medium">{item.label}</span>
+                  {item.badge && (
+                    <Badge 
+                      className={cn(
+                        "text-[9px] h-4 px-1.5",
+                        item.badge === "Live" 
+                          ? "bg-emerald-500/20 text-emerald-400" 
+                          : "bg-[#FF8A00]/20 text-[#FF8A00]"
+                      )}
+                    >
+                      {item.badge}
+                    </Badge>
+                  )}
+                </div>
+              )}
+            </button>
+          ))}
+        </nav>
+
+        {/* Footer */}
+        <div className="p-3 border-t border-slate-800">
+          {!sidebarCollapsed && (
+            <div className="bg-gradient-to-r from-[#0B3D91]/20 to-[#00C2D8]/20 rounded-xl p-3 mb-3">
+              <div className="flex items-center gap-2 mb-2">
+                <div className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse" />
+                <span className="text-xs text-slate-300">Live Ingestion</span>
+              </div>
+              <div className="text-xl font-bold text-white">{sessions?.reduce((acc, s) => acc + (s.event_count || 0), 0) || 0}</div>
+              <div className="text-[10px] text-slate-400">total events captured</div>
+            </div>
+          )}
+          
+          <Button
+            variant="ghost"
+            size="sm"
+            onClick={() => setSidebarCollapsed(!sidebarCollapsed)}
+            className={cn(
+              "w-full text-slate-400 hover:text-white hover:bg-slate-800",
+              sidebarCollapsed && "justify-center px-2"
+            )}
+          >
+            <ChevronLeft className={cn("h-4 w-4 transition-transform", sidebarCollapsed && "rotate-180")} />
+            {!sidebarCollapsed && <span className="ml-2">Collapse</span>}
+          </Button>
+        </div>
+      </aside>
+
+      {/* Main Content */}
+      <div className="flex-1 flex flex-col">
+        {/* Top Bar */}
+        <div className="border-b bg-white/80 backdrop-blur-sm sticky top-0 z-10">
+          <div className="flex items-center justify-between px-6 py-3">
+            <div className="flex items-center gap-4">
+              <h1 className="font-semibold text-lg capitalize">
+                {activeTab === "neurorouter" ? "NeuroRouter AI" : activeTab.replace("-", " ")}
+              </h1>
+              {activeTab === "overview" && (
+                <Badge variant="secondary" className="text-xs">
+                  Last updated: Just now
+                </Badge>
+              )}
+            </div>
+            
+            <div className="flex items-center gap-3">
+              <div className="relative">
+                <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+                <Input 
+                  placeholder="Search sessions, events..." 
+                  className="pl-9 w-72 bg-muted/30 border-0 focus:ring-2 focus:ring-[#00C2D8]/30"
+                />
+              </div>
+              <Button variant="ghost" size="icon" className="relative">
+                <Bell className="h-4 w-4" />
+                {aiInsights.length > 0 && (
+                  <span className="absolute -top-1 -right-1 w-4 h-4 bg-[#FF8A00] rounded-full text-[10px] text-white flex items-center justify-center">
+                    {aiInsights.length}
+                  </span>
+                )}
+              </Button>
+              <Button className="bg-gradient-to-r from-[#0B3D91] to-[#00C2D8] text-white hover:opacity-90">
+                <Plus className="h-4 w-4 mr-1" />
+                New Analysis
+              </Button>
+            </div>
+          </div>
+        </div>
+
+        {/* Page Content */}
+        <main className="flex-1 p-6 overflow-auto">
+          {renderContent()}
+        </main>
+      </div>
+    </div>
+  );
+};
+
+export default TraceflowDashboardFull;
