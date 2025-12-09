@@ -1,64 +1,66 @@
 project_id = "wnentybljoyjhizsdhrt"
 
-[functions.send-invoice-email]
-verify_jwt = false
-
-[functions.create-razorpay-order]
-verify_jwt = false
-
-[functions.generate-invoice-pdf]
-verify_jwt = false
-
+# Webhook functions - require signature verification instead of JWT
 [functions.razorpay-webhook]
 verify_jwt = false
 
+# Functions that require JWT authentication
+[functions.send-invoice-email]
+verify_jwt = true
+
+[functions.create-razorpay-order]
+verify_jwt = true
+
+[functions.generate-invoice-pdf]
+verify_jwt = true
+
 [functions.send-welcome-email]
-verify_jwt = false
+verify_jwt = true
 
 [functions.send-feature-unlock-email]
-verify_jwt = false
+verify_jwt = true
 
 [functions.send-quote-followup]
-verify_jwt = false
+verify_jwt = true
 
 [functions.send-notification]
-verify_jwt = false
+verify_jwt = true
 
 [functions.send-bulk-notifications]
-verify_jwt = false
+verify_jwt = true
 
 [functions.shift-scheduler]
-verify_jwt = false
+verify_jwt = true
 
 [functions.shift-swap-workflow]
-verify_jwt = false
+verify_jwt = true
 
 [functions.overtime-calculator]
-verify_jwt = false
+verify_jwt = true
 
 [functions.geofence-attendance]
-verify_jwt = false
+verify_jwt = true
 
 [functions.run-payroll]
-verify_jwt = false
+verify_jwt = true
 
 [functions.process-bgv]
-verify_jwt = false
+verify_jwt = true
 
 [functions.sso-callback]
-verify_jwt = false
+verify_jwt = true
 
 [functions.process-insurance-claim]
-verify_jwt = false
+verify_jwt = true
 
 [functions.verify-document]
-verify_jwt = false
+verify_jwt = true
 
 [functions.predictive-analytics]
-verify_jwt = false
+verify_jwt = true
 
 [functions.check-overdue-invoices]
-verify_jwt = false
+verify_jwt = true
 
 [functions.download-invoice-pdf]
-verify_jwt = false
+verify_jwt = true

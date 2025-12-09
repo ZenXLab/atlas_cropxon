@@ -28,27 +28,31 @@ export const useEmployeeRole = (): EmployeeRoleResult => {
 
   useEffect(() => {
     const checkRole = async () => {
-      // Check for dev mode first
-      const devMode = localStorage.getItem(DEV_MODE_KEY) === "true";
-      const devType = localStorage.getItem(DEV_MODE_TYPE_KEY);
-      const storedEmployeeRole = localStorage.getItem("atlas_employee_role") as EmployeeRole | null;
+      // Dev mode ONLY works in development builds
+      const isDevBuild = import.meta.env.DEV === true;
       
-      if (devMode && devType === "client") {
-        // In dev mode, check if there's a stored employee role
-        setRole(storedEmployeeRole || "admin"); // Default to admin in dev mode for full access
-        setLoading(false);
-        return;
+      if (isDevBuild) {
+        const devMode = localStorage.getItem(DEV_MODE_KEY) === "true";
+        const devType = localStorage.getItem(DEV_MODE_TYPE_KEY);
+        const storedEmployeeRole = localStorage.getItem("atlas_employee_role") as EmployeeRole | null;
+        
+        if (devMode && devType === "client") {
+          // In dev mode, check if there's a stored employee role
+          setRole(storedEmployeeRole || "admin"); // Default to admin in dev mode for full access
+          setLoading(false);
+          return;
+        }
+
+        // Skip DB check for dev mode users in development
+        if (user?.id.startsWith("dev-")) {
+          setRole(storedEmployeeRole || "admin");
+          setLoading(false);
+          return;
+        }
       }
 
       if (!user) {
         setRole("staff");
-        setLoading(false);
-        return;
-      }
-
-      // Skip DB check for dev mode users
-      if (user.id.startsWith("dev-")) {
-        setRole(storedEmployeeRole || "admin");
         setLoading(false);
         return;
       }

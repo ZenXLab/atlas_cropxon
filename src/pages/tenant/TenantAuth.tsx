@@ -239,25 +239,29 @@ const TenantAuth = () => {
               )}
             </Button>
 
-            {/* Skip Button for Development */}
-            <div className="relative my-4">
-              <div className="absolute inset-0 flex items-center">
-                <span className="w-full border-t border-gray-200" />
-              </div>
-              <div className="relative flex justify-center text-xs uppercase">
-                <span className="bg-white px-2 text-[#6B7280]">Development Only</span>
-              </div>
-            </div>
-            
-            <Button 
-              type="button" 
-              variant="outline" 
-              className="w-full h-11 gap-2 border-dashed border-[#E5E7EB] text-[#6B7280] hover:text-[#005EEB] hover:border-[#005EEB] rounded-xl transition-all" 
-              onClick={handleSkipLogin}
-            >
-              <SkipForward className="h-4 w-4" />
-              Skip Login (Dev Mode)
-            </Button>
+            {/* Skip Button for Development - Only visible in dev builds */}
+            {import.meta.env.DEV && (
+              <>
+                <div className="relative my-4">
+                  <div className="absolute inset-0 flex items-center">
+                    <span className="w-full border-t border-gray-200" />
+                  </div>
+                  <div className="relative flex justify-center text-xs uppercase">
+                    <span className="bg-white px-2 text-[#6B7280]">Development Only</span>
+                  </div>
+                </div>
+                
+                <Button 
+                  type="button" 
+                  variant="outline" 
+                  className="w-full h-11 gap-2 border-dashed border-[#E5E7EB] text-[#6B7280] hover:text-[#005EEB] hover:border-[#005EEB] rounded-xl transition-all" 
+                  onClick={handleSkipLogin}
+                >
+                  <SkipForward className="h-4 w-4" />
+                  Skip Login (Dev Mode)
+                </Button>
+              </>
+            )}
           </form>
 
           <div className="mt-6 pt-6 border-t border-gray-100 space-y-3">

@@ -71,19 +71,29 @@ export const useClientTier = () => {
 
   useEffect(() => {
     const fetchClientTier = async () => {
-      // In dev mode, default to enterprise tier for full access
-      const devMode = localStorage.getItem(DEV_MODE_KEY) === "true";
-      const devType = localStorage.getItem(DEV_MODE_TYPE_KEY);
+      // Dev mode ONLY works in development builds
+      const isDevBuild = import.meta.env.DEV === true;
       
-      if (devMode && devType === "client") {
-        setTier("enterprise"); // Full access in dev mode
-        setClientType("enterprise");
-        setLoading(false);
-        return;
+      if (isDevBuild) {
+        const devMode = localStorage.getItem(DEV_MODE_KEY) === "true";
+        const devType = localStorage.getItem(DEV_MODE_TYPE_KEY);
+        
+        if (devMode && devType === "client") {
+          setTier("enterprise"); // Full access in dev mode
+          setClientType("enterprise");
+          setLoading(false);
+          return;
+        }
+
+        if (user?.id.startsWith("dev-")) {
+          setTier("enterprise"); // Full access for dev users
+          setLoading(false);
+          return;
+        }
       }
 
-      if (!user || user.id.startsWith("dev-")) {
-        setTier("enterprise"); // Full access for dev users
+      if (!user) {
+        setTier("basic");
         setLoading(false);
         return;
       }
