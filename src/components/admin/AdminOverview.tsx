@@ -115,6 +115,17 @@ export const AdminOverview = () => {
     setLastUpdated(new Date());
   }, [queryClient, refetchStats]);
 
+  // Handle drag end - MUST be defined before any conditional returns
+  const handleDragEnd = useCallback(
+    (sourceId: string) => (targetId: string | null) => {
+      setIsDragging(false);
+      if (targetId && targetId !== sourceId) {
+        reorderWidgets(sourceId, targetId);
+      }
+    },
+    [reorderWidgets, setIsDragging]
+  );
+
   const loading = statsLoading || quotesLoading || onboardingsLoading || tenantsLoading;
 
   const statCards = useMemo(() => [
@@ -203,6 +214,7 @@ export const AdminOverview = () => {
     { name: "Settings", icon: Settings, path: "/admin/settings", color: "text-gray-600", bg: "bg-gray-500/10" },
   ], []);
 
+  // Show loading state
   if (loading) {
     return (
       <div className="space-y-6">
@@ -268,17 +280,6 @@ export const AdminOverview = () => {
       </div>
     );
   }
-
-  // Handle drag end
-  const handleDragEnd = useCallback(
-    (sourceId: string) => (targetId: string | null) => {
-      setIsDragging(false);
-      if (targetId && targetId !== sourceId) {
-        reorderWidgets(sourceId, targetId);
-      }
-    },
-    [reorderWidgets, setIsDragging]
-  );
 
   // Widget renderer
   const renderWidget = (widgetId: string) => {
