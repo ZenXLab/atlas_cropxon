@@ -1925,6 +1925,524 @@ export type Database = {
           },
         ]
       }
+      traceflow_ai_queue: {
+        Row: {
+          completed_at: string | null
+          created_at: string
+          error_message: string | null
+          id: string
+          llm_model: string | null
+          llm_used: string | null
+          payload: Json
+          priority: number | null
+          processing_time_ms: number | null
+          result: Json | null
+          started_at: string | null
+          status: string | null
+          task_type: string
+          tenant_id: string | null
+          tokens_used: number | null
+        }
+        Insert: {
+          completed_at?: string | null
+          created_at?: string
+          error_message?: string | null
+          id?: string
+          llm_model?: string | null
+          llm_used?: string | null
+          payload: Json
+          priority?: number | null
+          processing_time_ms?: number | null
+          result?: Json | null
+          started_at?: string | null
+          status?: string | null
+          task_type: string
+          tenant_id?: string | null
+          tokens_used?: number | null
+        }
+        Update: {
+          completed_at?: string | null
+          created_at?: string
+          error_message?: string | null
+          id?: string
+          llm_model?: string | null
+          llm_used?: string | null
+          payload?: Json
+          priority?: number | null
+          processing_time_ms?: number | null
+          result?: Json | null
+          started_at?: string | null
+          status?: string | null
+          task_type?: string
+          tenant_id?: string | null
+          tokens_used?: number | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "traceflow_ai_queue_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "client_tenants"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      traceflow_events: {
+        Row: {
+          browser: string | null
+          created_at: string
+          device_type: string | null
+          element_selector: string | null
+          element_text: string | null
+          event_type: string
+          id: string
+          metadata: Json | null
+          os: string | null
+          page_url: string | null
+          session_id: string
+          tenant_id: string | null
+          timestamp: string
+          viewport_height: number | null
+          viewport_width: number | null
+          x_position: number | null
+          y_position: number | null
+        }
+        Insert: {
+          browser?: string | null
+          created_at?: string
+          device_type?: string | null
+          element_selector?: string | null
+          element_text?: string | null
+          event_type: string
+          id?: string
+          metadata?: Json | null
+          os?: string | null
+          page_url?: string | null
+          session_id: string
+          tenant_id?: string | null
+          timestamp?: string
+          viewport_height?: number | null
+          viewport_width?: number | null
+          x_position?: number | null
+          y_position?: number | null
+        }
+        Update: {
+          browser?: string | null
+          created_at?: string
+          device_type?: string | null
+          element_selector?: string | null
+          element_text?: string | null
+          event_type?: string
+          id?: string
+          metadata?: Json | null
+          os?: string | null
+          page_url?: string | null
+          session_id?: string
+          tenant_id?: string | null
+          timestamp?: string
+          viewport_height?: number | null
+          viewport_width?: number | null
+          x_position?: number | null
+          y_position?: number | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "traceflow_events_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "client_tenants"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      traceflow_funnels: {
+        Row: {
+          ai_causality_analysis: string | null
+          ai_improvement_suggestions: Json | null
+          conversion_rate: number | null
+          created_at: string
+          description: string | null
+          drop_off_analysis: Json | null
+          id: string
+          name: string
+          status: string | null
+          steps: Json
+          tenant_id: string | null
+          total_sessions: number | null
+          updated_at: string
+        }
+        Insert: {
+          ai_causality_analysis?: string | null
+          ai_improvement_suggestions?: Json | null
+          conversion_rate?: number | null
+          created_at?: string
+          description?: string | null
+          drop_off_analysis?: Json | null
+          id?: string
+          name: string
+          status?: string | null
+          steps?: Json
+          tenant_id?: string | null
+          total_sessions?: number | null
+          updated_at?: string
+        }
+        Update: {
+          ai_causality_analysis?: string | null
+          ai_improvement_suggestions?: Json | null
+          conversion_rate?: number | null
+          created_at?: string
+          description?: string | null
+          drop_off_analysis?: Json | null
+          id?: string
+          name?: string
+          status?: string | null
+          steps?: Json
+          tenant_id?: string | null
+          total_sessions?: number | null
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "traceflow_funnels_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "client_tenants"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      traceflow_heatmaps: {
+        Row: {
+          created_at: string
+          data_points: Json
+          date_range_end: string | null
+          date_range_start: string | null
+          device_type: string | null
+          heatmap_type: string
+          id: string
+          page_url: string
+          tenant_id: string | null
+          total_sessions: number | null
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          data_points?: Json
+          date_range_end?: string | null
+          date_range_start?: string | null
+          device_type?: string | null
+          heatmap_type: string
+          id?: string
+          page_url: string
+          tenant_id?: string | null
+          total_sessions?: number | null
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          data_points?: Json
+          date_range_end?: string | null
+          date_range_start?: string | null
+          device_type?: string | null
+          heatmap_type?: string
+          id?: string
+          page_url?: string
+          tenant_id?: string | null
+          total_sessions?: number | null
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "traceflow_heatmaps_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "client_tenants"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      traceflow_neurorouter_logs: {
+        Row: {
+          cost_estimate: number | null
+          created_at: string
+          error_message: string | null
+          id: string
+          input_tokens: number | null
+          latency_ms: number | null
+          output_tokens: number | null
+          routing_reason: string | null
+          selected_llm: string
+          selected_model: string
+          success: boolean | null
+          task_complexity: string | null
+          task_type: string
+        }
+        Insert: {
+          cost_estimate?: number | null
+          created_at?: string
+          error_message?: string | null
+          id?: string
+          input_tokens?: number | null
+          latency_ms?: number | null
+          output_tokens?: number | null
+          routing_reason?: string | null
+          selected_llm: string
+          selected_model: string
+          success?: boolean | null
+          task_complexity?: string | null
+          task_type: string
+        }
+        Update: {
+          cost_estimate?: number | null
+          created_at?: string
+          error_message?: string | null
+          id?: string
+          input_tokens?: number | null
+          latency_ms?: number | null
+          output_tokens?: number | null
+          routing_reason?: string | null
+          selected_llm?: string
+          selected_model?: string
+          success?: boolean | null
+          task_complexity?: string | null
+          task_type?: string
+        }
+        Relationships: []
+      }
+      traceflow_sessions: {
+        Row: {
+          ai_analysis_status: string | null
+          ai_root_cause: string | null
+          ai_suggested_fix: string | null
+          ai_summary: string | null
+          browser: string | null
+          city: string | null
+          country: string | null
+          created_at: string
+          dead_click_count: number | null
+          device_type: string | null
+          duration_ms: number | null
+          end_time: string | null
+          error_count: number | null
+          event_count: number | null
+          frustration_score: number | null
+          id: string
+          ip_address: string | null
+          metadata: Json | null
+          os: string | null
+          page_count: number | null
+          rage_click_count: number | null
+          replay_data: Json | null
+          session_id: string
+          start_time: string
+          tenant_id: string | null
+          updated_at: string
+          user_agent: string | null
+          user_id: string | null
+        }
+        Insert: {
+          ai_analysis_status?: string | null
+          ai_root_cause?: string | null
+          ai_suggested_fix?: string | null
+          ai_summary?: string | null
+          browser?: string | null
+          city?: string | null
+          country?: string | null
+          created_at?: string
+          dead_click_count?: number | null
+          device_type?: string | null
+          duration_ms?: number | null
+          end_time?: string | null
+          error_count?: number | null
+          event_count?: number | null
+          frustration_score?: number | null
+          id?: string
+          ip_address?: string | null
+          metadata?: Json | null
+          os?: string | null
+          page_count?: number | null
+          rage_click_count?: number | null
+          replay_data?: Json | null
+          session_id: string
+          start_time?: string
+          tenant_id?: string | null
+          updated_at?: string
+          user_agent?: string | null
+          user_id?: string | null
+        }
+        Update: {
+          ai_analysis_status?: string | null
+          ai_root_cause?: string | null
+          ai_suggested_fix?: string | null
+          ai_summary?: string | null
+          browser?: string | null
+          city?: string | null
+          country?: string | null
+          created_at?: string
+          dead_click_count?: number | null
+          device_type?: string | null
+          duration_ms?: number | null
+          end_time?: string | null
+          error_count?: number | null
+          event_count?: number | null
+          frustration_score?: number | null
+          id?: string
+          ip_address?: string | null
+          metadata?: Json | null
+          os?: string | null
+          page_count?: number | null
+          rage_click_count?: number | null
+          replay_data?: Json | null
+          session_id?: string
+          start_time?: string
+          tenant_id?: string | null
+          updated_at?: string
+          user_agent?: string | null
+          user_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "traceflow_sessions_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "client_tenants"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      traceflow_ux_issues: {
+        Row: {
+          affected_sessions: number | null
+          affected_users: number | null
+          ai_code_hint: string | null
+          ai_diagnosis: string | null
+          ai_suggested_fix: string | null
+          created_at: string
+          element_screenshot_url: string | null
+          element_selector: string | null
+          estimated_revenue_impact: number | null
+          first_seen: string
+          github_issue_id: string | null
+          id: string
+          issue_type: string
+          jira_ticket_id: string | null
+          last_seen: string
+          metadata: Json | null
+          occurrence_count: number | null
+          page_url: string
+          severity: string | null
+          status: string | null
+          tenant_id: string | null
+          updated_at: string
+        }
+        Insert: {
+          affected_sessions?: number | null
+          affected_users?: number | null
+          ai_code_hint?: string | null
+          ai_diagnosis?: string | null
+          ai_suggested_fix?: string | null
+          created_at?: string
+          element_screenshot_url?: string | null
+          element_selector?: string | null
+          estimated_revenue_impact?: number | null
+          first_seen?: string
+          github_issue_id?: string | null
+          id?: string
+          issue_type: string
+          jira_ticket_id?: string | null
+          last_seen?: string
+          metadata?: Json | null
+          occurrence_count?: number | null
+          page_url: string
+          severity?: string | null
+          status?: string | null
+          tenant_id?: string | null
+          updated_at?: string
+        }
+        Update: {
+          affected_sessions?: number | null
+          affected_users?: number | null
+          ai_code_hint?: string | null
+          ai_diagnosis?: string | null
+          ai_suggested_fix?: string | null
+          created_at?: string
+          element_screenshot_url?: string | null
+          element_selector?: string | null
+          estimated_revenue_impact?: number | null
+          first_seen?: string
+          github_issue_id?: string | null
+          id?: string
+          issue_type?: string
+          jira_ticket_id?: string | null
+          last_seen?: string
+          metadata?: Json | null
+          occurrence_count?: number | null
+          page_url?: string
+          severity?: string | null
+          status?: string | null
+          tenant_id?: string | null
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "traceflow_ux_issues_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "client_tenants"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      traceflow_voice_feedback: {
+        Row: {
+          ai_analysis: string | null
+          audio_url: string | null
+          correlated_session_id: string | null
+          created_at: string
+          id: string
+          sentiment: string | null
+          sentiment_score: number | null
+          session_id: string | null
+          tenant_id: string | null
+          topics: Json | null
+          transcript: string | null
+        }
+        Insert: {
+          ai_analysis?: string | null
+          audio_url?: string | null
+          correlated_session_id?: string | null
+          created_at?: string
+          id?: string
+          sentiment?: string | null
+          sentiment_score?: number | null
+          session_id?: string | null
+          tenant_id?: string | null
+          topics?: Json | null
+          transcript?: string | null
+        }
+        Update: {
+          ai_analysis?: string | null
+          audio_url?: string | null
+          correlated_session_id?: string | null
+          created_at?: string
+          id?: string
+          sentiment?: string | null
+          sentiment_score?: number | null
+          session_id?: string | null
+          tenant_id?: string | null
+          topics?: Json | null
+          transcript?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "traceflow_voice_feedback_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "client_tenants"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       user_roles: {
         Row: {
           created_at: string | null
