@@ -379,13 +379,15 @@ export const TraceflowLanding = () => {
               <Button variant="ghost" size="sm" className="text-foreground/70 hover:text-foreground">
                 Sign In
               </Button>
-              <Button 
-                size="sm" 
-                className="bg-[#FF8A00] hover:bg-[#FF8A00]/90 text-white shadow-lg shadow-[#FF8A00]/25"
-              >
-                Start 14-Day Trial
-                <ArrowRight className="ml-1.5 h-3.5 w-3.5" />
-              </Button>
+              <Link to="/contact">
+                <Button 
+                  size="sm" 
+                  className="bg-[#FF8A00] hover:bg-[#FF8A00]/90 text-white shadow-lg shadow-[#FF8A00]/25"
+                >
+                  Request Demo
+                  <ArrowRight className="ml-1.5 h-3.5 w-3.5" />
+                </Button>
+              </Link>
             </div>
 
             {/* Mobile Menu Button */}
@@ -422,9 +424,11 @@ export const TraceflowLanding = () => {
             </Link>
             <div className="pt-4 border-t border-border space-y-2">
               <Button variant="outline" className="w-full justify-center">Sign In</Button>
-              <Button className="w-full justify-center bg-[#FF8A00] hover:bg-[#FF8A00]/90 text-white">
-                Start 14-Day Trial
-              </Button>
+              <Link to="/contact">
+                <Button className="w-full justify-center bg-[#FF8A00] hover:bg-[#FF8A00]/90 text-white">
+                  Request Demo
+                </Button>
+              </Link>
             </div>
           </div>
         </div>
@@ -516,21 +520,25 @@ export const TraceflowLanding = () => {
               </p>
 
               <div className="flex flex-col sm:flex-row gap-3 pt-2">
-                <Button 
-                  size="lg" 
-                  className="bg-[#FF8A00] hover:bg-[#FF8A00]/90 text-white shadow-xl shadow-[#FF8A00]/25 px-8 h-12 text-base"
-                >
-                  Start 14-Day Trial — No Card
-                  <ArrowRight className="ml-2 h-4 w-4" />
-                </Button>
-                <Button 
-                  size="lg" 
-                  variant="outline" 
-                  className="border-[#0B3D91]/30 text-[#0B3D91] hover:bg-[#0B3D91]/5 h-12 text-base"
-                >
-                  <Play className="mr-2 h-4 w-4" />
-                  Request Demo
-                </Button>
+                <Link to="/contact">
+                  <Button 
+                    size="lg" 
+                    className="bg-[#FF8A00] hover:bg-[#FF8A00]/90 text-white shadow-xl shadow-[#FF8A00]/25 px-8 h-12 text-base"
+                  >
+                    Request Enterprise Demo
+                    <ArrowRight className="ml-2 h-4 w-4" />
+                  </Button>
+                </Link>
+                <Link to="/traceflow/dashboard">
+                  <Button 
+                    size="lg" 
+                    variant="outline" 
+                    className="border-[#0B3D91]/30 text-[#0B3D91] hover:bg-[#0B3D91]/5 h-12 text-base"
+                  >
+                    <Play className="mr-2 h-4 w-4" />
+                    View Live Dashboard
+                  </Button>
+                </Link>
               </div>
 
               {/* Trust Badges */}
@@ -989,13 +997,17 @@ export const TraceflowLanding = () => {
             Join hundreds of teams using TRACEFLOW to understand users, fix issues faster, and drive conversions.
           </p>
           <div className="flex flex-col sm:flex-row gap-4 justify-center">
-            <Button size="lg" className="bg-[#FF8A00] hover:bg-[#FF8A00]/90 text-white shadow-xl px-8 h-12">
-              Start 14-Day Trial — No Card
-              <ArrowRight className="ml-2 h-4 w-4" />
-            </Button>
-            <Button size="lg" variant="outline" className="bg-white/10 border-white/30 text-white hover:bg-white/20 h-12">
-              Schedule a Demo
-            </Button>
+            <Link to="/contact">
+              <Button size="lg" className="bg-[#FF8A00] hover:bg-[#FF8A00]/90 text-white shadow-xl px-8 h-12">
+                Request Enterprise Demo
+                <ArrowRight className="ml-2 h-4 w-4" />
+              </Button>
+            </Link>
+            <Link to="/traceflow/dashboard">
+              <Button size="lg" variant="outline" className="bg-white/10 border-white/30 text-white hover:bg-white/20 h-12">
+                Explore Dashboard
+              </Button>
+            </Link>
           </div>
         </div>
       </section>

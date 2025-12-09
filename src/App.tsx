@@ -36,6 +36,7 @@ import IndustrySolutions from "./pages/services/IndustrySolutions";
 
 // Traceflow Flagship Product
 import Traceflow from "./pages/Traceflow";
+import TraceflowDashboardPage from "./pages/TraceflowDashboard";
 
 // Admin pages
 import AdminAuth from "./pages/admin/AdminAuth";
@@ -92,6 +93,7 @@ const AnimatedRoutes = () => {
           <Route path="/pricing" element={<Pricing />} />
           <Route path="/partners" element={<Partners />} />
           <Route path="/traceflow" element={<Traceflow />} />
+          <Route path="/traceflow/dashboard" element={<TraceflowDashboardPage />} />
           <Route path="/auth" element={<Auth />} />
           <Route path="/reset-password" element={<ResetPassword />} />
           <Route path="/onboarding" element={<Onboarding />} />
