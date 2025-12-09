@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useCallback } from "react";
 import { Button } from "@/components/ui/button";
 import { Zap, Star, Building2, Globe, IndianRupee, TrendingUp, Shield, Clock } from "lucide-react";
 import { PricingTierCard } from "./pricing/PricingTierCard";
@@ -174,9 +174,16 @@ const globalPricing = [
 export const PricingSection = () => {
   const [isAnnual, setIsAnnual] = useState(true);
   const [region, setRegion] = useState<'india' | 'global'>('india');
+  const [selectedAddons, setSelectedAddons] = useState<string[]>([]);
+  const [addonsPrice, setAddonsPrice] = useState(0);
 
   const pricing = region === 'india' ? indiaPricing : globalPricing;
   const currency = region === 'india' ? '₹' : '$';
+
+  const handleAddonsChange = useCallback((addons: string[], totalPrice: number) => {
+    setSelectedAddons(addons);
+    setAddonsPrice(totalPrice);
+  }, []);
 
   return (
     <section id="pricing" className="py-24 bg-background relative overflow-hidden">
@@ -312,7 +319,11 @@ export const PricingSection = () => {
 
         {/* Add-ons */}
         <div className="mb-20">
-          <PricingAddons region={region} />
+          <PricingAddons 
+            region={region} 
+            selectedAddons={selectedAddons}
+            onAddonsChange={handleAddonsChange}
+          />
         </div>
 
         {/* Lead Capture */}
