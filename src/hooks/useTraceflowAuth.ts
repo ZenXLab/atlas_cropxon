@@ -16,6 +16,7 @@ export interface TraceflowUser {
 
 // DEV MODE: Bypass authentication for testing (remove in production)
 const DEV_MODE_BYPASS = localStorage.getItem("TRACEFLOW_DEV_MODE") === "true";
+const DEV_ADMIN_UUID = "00000000-0000-0000-0000-000000000000"; // Valid UUID for dev mode
 
 export const useTraceflowAuth = () => {
   const navigate = useNavigate();
@@ -28,7 +29,7 @@ export const useTraceflowAuth = () => {
     // DEV MODE: Skip auth check entirely
     if (DEV_MODE_BYPASS) {
       setTraceflowUser({
-        id: "dev-admin",
+        id: DEV_ADMIN_UUID,
         email: "admin@traceflow.dev",
         fullName: "Dev Admin",
         companyName: "CropXon ATLAS",

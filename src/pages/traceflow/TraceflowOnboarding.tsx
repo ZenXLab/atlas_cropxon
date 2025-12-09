@@ -197,6 +197,15 @@ export const TraceflowOnboarding = () => {
   const [currentStep, setCurrentStep] = useState(1);
   const [isLoading, setIsLoading] = useState(false);
   const [isAdmin, setIsAdmin] = useState(false);
+  
+  // DEV MODE check
+  const isDevMode = localStorage.getItem("TRACEFLOW_DEV_MODE") === "true";
+  
+  // DEV MODE: Skip to dashboard
+  const handleDevSkip = () => {
+    toast.success("Dev Mode: Skipping to dashboard...");
+    navigate("/traceflow/dashboard");
+  };
 
   // Form data
   const [industry, setIndustry] = useState("");
@@ -329,6 +338,18 @@ export const TraceflowOnboarding = () => {
                   Admin Access
                 </Badge>
               </motion.div>
+            )}
+            {/* DEV MODE Skip Button */}
+            {isDevMode && (
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={handleDevSkip}
+                className="border-dashed border-yellow-500/50 text-yellow-600 hover:bg-yellow-500/10"
+              >
+                <Zap className="h-3 w-3 mr-1" />
+                Skip to Dashboard (Dev)
+              </Button>
             )}
           </div>
         </div>
