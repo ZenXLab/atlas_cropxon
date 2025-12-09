@@ -99,6 +99,15 @@ export const TraceflowBilling = () => {
   const [isLoading, setIsLoading] = useState(false);
   const [paymentMethod, setPaymentMethod] = useState("card");
   const [isProcessing, setIsProcessing] = useState(false);
+  
+  // DEV MODE check
+  const isDevMode = localStorage.getItem("TRACEFLOW_DEV_MODE") === "true";
+  
+  // DEV MODE: Skip to dashboard
+  const handleDevSkip = () => {
+    toast.success("Dev Mode: Skipping payment...");
+    navigate("/traceflow/dashboard");
+  };
 
   // Get plan from navigation state
   const { plan, industry, companySize } = location.state || { 
@@ -323,14 +332,28 @@ export const TraceflowBilling = () => {
                 </div>
               </Link>
             </div>
-            <motion.div 
-              className="flex items-center gap-2 bg-emerald-500/10 px-3 py-1.5 rounded-full"
-              animate={{ opacity: [0.7, 1, 0.7] }}
-              transition={{ duration: 2, repeat: Infinity }}
-            >
-              <Lock className="h-4 w-4 text-emerald-500" />
-              <span className="text-sm text-emerald-600 dark:text-emerald-400 font-medium">256-bit SSL Encrypted</span>
-            </motion.div>
+            <div className="flex items-center gap-3">
+              {/* DEV MODE Skip Button */}
+              {isDevMode && (
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={handleDevSkip}
+                  className="border-dashed border-yellow-500/50 text-yellow-600 hover:bg-yellow-500/10"
+                >
+                  <Zap className="h-3 w-3 mr-1" />
+                  Skip Payment (Dev)
+                </Button>
+              )}
+              <motion.div 
+                className="flex items-center gap-2 bg-emerald-500/10 px-3 py-1.5 rounded-full"
+                animate={{ opacity: [0.7, 1, 0.7] }}
+                transition={{ duration: 2, repeat: Infinity }}
+              >
+                <Lock className="h-4 w-4 text-emerald-500" />
+                <span className="text-sm text-emerald-600 dark:text-emerald-400 font-medium">256-bit SSL</span>
+              </motion.div>
+            </div>
           </div>
         </div>
       </motion.div>
