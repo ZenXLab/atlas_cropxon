@@ -6,25 +6,26 @@ import { cn } from "@/lib/utils";
 import { useClientTier } from "@/hooks/useClientTier";
 import { useEmployeeRole, isModuleAccessibleByRole, EmployeeRole } from "@/hooks/useEmployeeRole";
 import { TierUpgradePrompt, getRequiredTierForModule } from "@/components/portal/TierUpgradePrompt";
+import { SIDEBAR_ACCESS_STORAGE_KEY, SidebarAccessConfig, getDefaultSidebarConfig } from "@/pages/tenant/settings/TenantSidebarAccess";
 import cropxonIcon from "@/assets/cropxon-icon.png";
 import { 
   LayoutDashboard, FolderKanban, FileText, Receipt, HeadphonesIcon, Calendar,
-  Brain, Settings, LogOut, Users, Star, BookOpen, Server, Crown, Lock
+  Brain, Settings, LogOut, Users, Star, BookOpen, Server, Crown, Lock, Sparkles
 } from "lucide-react";
 
 const allSidebarItems = [
-  { name: "Dashboard", href: "/portal", icon: LayoutDashboard, section: "Overview" },
-  { name: "Projects", href: "/portal/projects", icon: FolderKanban, section: "Work" },
-  { name: "Files", href: "/portal/files", icon: FileText, section: "Work" },
-  { name: "Invoices", href: "/portal/invoices", icon: Receipt, section: "Billing" },
-  { name: "Tickets", href: "/portal/tickets", icon: HeadphonesIcon, section: "Support" },
-  { name: "Meetings", href: "/portal/meetings", icon: Calendar, section: "Support" },
-  { name: "AI Dashboard", href: "/portal/ai", icon: Brain, section: "AI & Monitoring" },
-  { name: "MSP Monitoring", href: "/portal/msp", icon: Server, section: "AI & Monitoring" },
-  { name: "Team", href: "/portal/team", icon: Users, section: "More" },
-  { name: "Feedback", href: "/portal/feedback", icon: Star, section: "More" },
-  { name: "Resources", href: "/portal/resources", icon: BookOpen, section: "More" },
-  { name: "Settings", href: "/portal/settings", icon: Settings, section: "Account" },
+  { id: "dashboard", name: "Dashboard", href: "/portal", icon: LayoutDashboard, section: "Overview" },
+  { id: "projects", name: "Projects", href: "/portal/projects", icon: FolderKanban, section: "Work" },
+  { id: "files", name: "Files", href: "/portal/files", icon: FileText, section: "Work" },
+  { id: "invoices", name: "Invoices", href: "/portal/invoices", icon: Receipt, section: "Billing" },
+  { id: "tickets", name: "Tickets", href: "/portal/tickets", icon: HeadphonesIcon, section: "Support" },
+  { id: "meetings", name: "Meetings", href: "/portal/meetings", icon: Calendar, section: "Support" },
+  { id: "ai-dashboard", name: "AI Dashboard", href: "/portal/ai", icon: Brain, section: "AI & Monitoring" },
+  { id: "msp-monitoring", name: "MSP Monitoring", href: "/portal/msp", icon: Server, section: "AI & Monitoring" },
+  { id: "team", name: "Team", href: "/portal/team", icon: Users, section: "More" },
+  { id: "feedback", name: "Feedback", href: "/portal/feedback", icon: Star, section: "More" },
+  { id: "resources", name: "Resources", href: "/portal/resources", icon: BookOpen, section: "More" },
+  { id: "settings", name: "Settings", href: "/portal/settings", icon: Settings, section: "Account" },
 ];
 
 const roleLabels: Record<EmployeeRole, string> = {
@@ -68,12 +69,33 @@ export const PortalSidebar = ({ sidebarOpen, setSidebarOpen, user, profile, sign
     return location.pathname.startsWith(path);
   };
 
-  // Group items by section, checking both tier and role access
+  // Get sidebar access configuration
+  const getSidebarAccessConfig = (): SidebarAccessConfig => {
+    try {
+      const saved = localStorage.getItem(SIDEBAR_ACCESS_STORAGE_KEY);
+      if (saved) return JSON.parse(saved);
+    } catch (e) {
+      console.error("Failed to load sidebar access config:", e);
+    }
+    return getDefaultSidebarConfig();
+  };
+
+  const sidebarConfig = getSidebarAccessConfig();
+
+  // Check if module is enabled by tenant admin for this role
+  const isModuleEnabledByTenant = (moduleId: string): boolean => {
+    const roleConfig = sidebarConfig[employeeRole];
+    if (!roleConfig) return true;
+    return roleConfig[moduleId] !== false;
+  };
+
+  // Group items by section, checking tier, role, and tenant admin access
   const sidebarSections = allSidebarItems.reduce((acc, item) => {
     const section = acc.find(s => s.title === item.section);
     const isTierAllowed = isModuleAllowed(item.name);
     const isRoleAllowed = isModuleAccessibleByRole(item.name, employeeRole);
-    const itemWithAccess = { ...item, isTierAllowed, isRoleAllowed };
+    const isTenantEnabled = isModuleEnabledByTenant(item.id);
+    const itemWithAccess = { ...item, isTierAllowed, isRoleAllowed, isTenantEnabled };
     
     if (section) {
       section.items.push(itemWithAccess);
@@ -81,7 +103,7 @@ export const PortalSidebar = ({ sidebarOpen, setSidebarOpen, user, profile, sign
       acc.push({ title: item.section, items: [itemWithAccess] });
     }
     return acc;
-  }, [] as { title: string; items: (typeof allSidebarItems[0] & { isTierAllowed: boolean; isRoleAllowed: boolean })[] }[]);
+  }, [] as { title: string; items: (typeof allSidebarItems[0] & { isTierAllowed: boolean; isRoleAllowed: boolean; isTenantEnabled: boolean })[] }[]);
 
   return (
     <aside className={cn(
@@ -108,10 +130,17 @@ export const PortalSidebar = ({ sidebarOpen, setSidebarOpen, user, profile, sign
             </div>
             <div className="flex items-center gap-2">
               <Users className="w-3.5 h-3.5 text-primary" />
-              <Badge className={cn("text-xs", roleColors[employeeRole])}>
-                {roleLabels[employeeRole]} Access
-              </Badge>
-            </div>
+            <Badge className={cn("text-xs", roleColors[employeeRole])}>
+              {roleLabels[employeeRole]} Access
+            </Badge>
+          </div>
+          <Link 
+            to="/portal/plans" 
+            className="mt-2 flex items-center gap-2 px-3 py-1.5 rounded-lg bg-gradient-to-r from-primary/10 to-accent/10 hover:from-primary/20 hover:to-accent/20 transition-colors"
+          >
+            <Sparkles className="w-3.5 h-3.5 text-primary" />
+            <span className="text-xs font-medium text-primary">Compare Plans</span>
+          </Link>
           </div>
         </div>
 
@@ -128,7 +157,22 @@ export const PortalSidebar = ({ sidebarOpen, setSidebarOpen, user, profile, sign
                     const Icon = item.icon;
                     const active = isActive(item.href);
                     
-                    // First check role access - if not allowed by role, show lock
+                    // First check if tenant admin has disabled this module
+                    if (!item.isTenantEnabled) {
+                      return (
+                        <div
+                          key={item.name}
+                          className="flex items-center gap-3 px-3 py-2 rounded-xl text-muted-foreground/40 cursor-not-allowed"
+                          title={`${item.name} has been disabled by your organization admin`}
+                        >
+                          <Icon className="w-4 h-4" />
+                          <span className="text-sm font-medium flex-1">{item.name}</span>
+                          <Lock className="w-3.5 h-3.5" />
+                        </div>
+                      );
+                    }
+                    
+                    // Then check role access - if not allowed by role, show lock
                     if (!item.isRoleAllowed) {
                       return (
                         <div
@@ -155,6 +199,24 @@ export const PortalSidebar = ({ sidebarOpen, setSidebarOpen, user, profile, sign
                         />
                       );
                     }
+                    
+                    return (
+                      <Link
+                        key={item.name}
+                        to={item.href}
+                        className={cn(
+                          "flex items-center gap-3 px-3 py-2 rounded-xl transition-all duration-200 group",
+                          active 
+                            ? "bg-primary/10 text-primary" 
+                            : "text-muted-foreground hover:bg-muted/50 hover:text-foreground"
+                        )}
+                        onClick={() => setSidebarOpen(false)}
+                      >
+                        <Icon className={cn("w-4 h-4", active ? "text-primary" : "group-hover:text-foreground")} />
+                        <span className="text-sm font-medium">{item.name}</span>
+                      </Link>
+                    );
+                  })}
                     
                     return (
                       <Link

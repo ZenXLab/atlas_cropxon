@@ -18,6 +18,7 @@ import { PortalAIDashboard } from "@/components/portal/PortalAIDashboard";
 import { PortalFeedback } from "@/components/portal/PortalFeedback";
 import { PortalResources } from "@/components/portal/PortalResources";
 import { PortalMSPMonitoring } from "@/components/portal/PortalMSPMonitoring";
+import TierComparison from "@/pages/portal/TierComparison";
 
 export default function Portal() {
   const [sidebarOpen, setSidebarOpen] = useState(false);
@@ -73,6 +74,7 @@ export default function Portal() {
     if (path.startsWith("/portal/msp")) return <PortalMSPMonitoring />;
     if (path.startsWith("/portal/feedback")) return <PortalFeedback userId={user?.id} />;
     if (path.startsWith("/portal/resources")) return <PortalResources />;
+    if (path.startsWith("/portal/plans")) return <TierComparison />;
     
     return (
       <div className="text-center py-12">

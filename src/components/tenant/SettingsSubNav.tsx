@@ -1,6 +1,6 @@
 import React from "react";
 import { useNavigate, useLocation } from "react-router-dom";
-import { Plug, Key, CreditCard, FileDown, Globe, Settings, LayoutGrid } from "lucide-react";
+import { Plug, Key, CreditCard, FileDown, Globe, Settings, LayoutGrid, Menu } from "lucide-react";
 import { cn } from "@/lib/utils";
 
 const settingsNavItems = [
@@ -11,6 +11,7 @@ const settingsNavItems = [
   { path: "/tenant/settings/export", label: "Data Export", icon: FileDown },
   { path: "/tenant/settings/domain", label: "Custom Domain", icon: Globe },
   { path: "/tenant/settings/widgets", label: "Widget Access", icon: LayoutGrid },
+  { path: "/tenant/settings/sidebar", label: "Sidebar Access", icon: Menu },
 ];
 
 export const SettingsSubNav: React.FC = () => {
