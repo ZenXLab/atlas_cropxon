@@ -2161,6 +2161,66 @@ export type Database = {
           },
         ]
       }
+      traceflow_invoices: {
+        Row: {
+          billing_address: string | null
+          billing_city: string | null
+          billing_country: string | null
+          billing_email: string | null
+          billing_gst: string | null
+          billing_name: string | null
+          created_at: string | null
+          id: string
+          invoice_number: string
+          paid_at: string | null
+          payment_method: string | null
+          plan: string
+          status: string | null
+          subtotal: number
+          tax: number
+          total: number
+          user_id: string | null
+        }
+        Insert: {
+          billing_address?: string | null
+          billing_city?: string | null
+          billing_country?: string | null
+          billing_email?: string | null
+          billing_gst?: string | null
+          billing_name?: string | null
+          created_at?: string | null
+          id?: string
+          invoice_number: string
+          paid_at?: string | null
+          payment_method?: string | null
+          plan: string
+          status?: string | null
+          subtotal: number
+          tax: number
+          total: number
+          user_id?: string | null
+        }
+        Update: {
+          billing_address?: string | null
+          billing_city?: string | null
+          billing_country?: string | null
+          billing_email?: string | null
+          billing_gst?: string | null
+          billing_name?: string | null
+          created_at?: string | null
+          id?: string
+          invoice_number?: string
+          paid_at?: string | null
+          payment_method?: string | null
+          plan?: string
+          status?: string | null
+          subtotal?: number
+          tax?: number
+          total?: number
+          user_id?: string | null
+        }
+        Relationships: []
+      }
       traceflow_neurorouter_logs: {
         Row: {
           cost_estimate: number | null
@@ -2309,6 +2369,78 @@ export type Database = {
             referencedColumns: ["id"]
           },
         ]
+      }
+      traceflow_subscriptions: {
+        Row: {
+          company_size: string | null
+          created_at: string | null
+          id: string
+          industry: string | null
+          invoice_id: string | null
+          plan: string
+          role: string | null
+          status: string
+          updated_at: string | null
+          use_cases: Json | null
+          user_id: string | null
+          website: string | null
+        }
+        Insert: {
+          company_size?: string | null
+          created_at?: string | null
+          id?: string
+          industry?: string | null
+          invoice_id?: string | null
+          plan?: string
+          role?: string | null
+          status?: string
+          updated_at?: string | null
+          use_cases?: Json | null
+          user_id?: string | null
+          website?: string | null
+        }
+        Update: {
+          company_size?: string | null
+          created_at?: string | null
+          id?: string
+          industry?: string | null
+          invoice_id?: string | null
+          plan?: string
+          role?: string | null
+          status?: string
+          updated_at?: string | null
+          use_cases?: Json | null
+          user_id?: string | null
+          website?: string | null
+        }
+        Relationships: []
+      }
+      traceflow_user_features: {
+        Row: {
+          created_at: string | null
+          enabled_by: string | null
+          feature_id: string
+          id: string
+          is_enabled: boolean | null
+          user_id: string | null
+        }
+        Insert: {
+          created_at?: string | null
+          enabled_by?: string | null
+          feature_id: string
+          id?: string
+          is_enabled?: boolean | null
+          user_id?: string | null
+        }
+        Update: {
+          created_at?: string | null
+          enabled_by?: string | null
+          feature_id?: string
+          id?: string
+          is_enabled?: boolean | null
+          user_id?: string | null
+        }
+        Relationships: []
       }
       traceflow_ux_issues: {
         Row: {
