@@ -140,6 +140,9 @@ export const TraceflowDashboardFull = () => {
       case "privacy":
         return <TraceflowPrivacyControls />;
 
+      case "feature-matrix":
+        return <TraceflowFeatureMatrixDashboard />;
+
       case "capture":
         return (
           <div className="space-y-6">
