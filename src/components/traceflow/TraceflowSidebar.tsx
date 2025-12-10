@@ -34,7 +34,8 @@ import {
   TrendingUp,
   MessageSquare,
   ArrowDown,
-  Shield
+  Shield,
+  LayoutGrid
 } from "lucide-react";
 
 interface SidebarItem {
@@ -131,7 +132,15 @@ const sidebarSections: SidebarSection[] = [
       { icon: Activity, label: "Recent Events", id: "recent-events", description: "Real-time event feed" },
       { icon: Shield, label: "Privacy Controls", id: "privacy", description: "Data masking & compliance" },
       { icon: Settings, label: "Settings", id: "settings", description: "Team, billing & configuration" },
-    ]
+    ],
+  },
+  {
+    title: "Enterprise",
+    icon: Crown,
+    defaultOpen: false,
+    items: [
+      { icon: LayoutGrid, label: "Feature Matrix", id: "feature-matrix", description: "Full OS feature overview (183 features)", badge: "Enterprise", badgeColor: "bg-amber-500/10 text-amber-600" },
+    ],
   },
 ];
 
