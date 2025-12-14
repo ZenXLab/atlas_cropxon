@@ -1,110 +1,578 @@
-import { useState } from "react";
-import { useQuery } from "@tanstack/react-query";
+import { useState, useEffect, useCallback, useMemo, memo, lazy, Suspense } from "react";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
+import { AdminCardSkeleton, AdminTableSkeleton } from "@/components/admin/AdminCardSkeleton";
+import { VirtualTable } from "@/components/admin/VirtualTable";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { MousePointer, Eye, Link, BarChart3, Clock, Users } from "lucide-react";
+import { MousePointer, Eye, BarChart3, Users, RefreshCw, Radio, Download, ChevronDown, ChevronUp, Bell } from "lucide-react";
 import { format } from "date-fns";
+import { toast } from "sonner";
+import { motion } from "framer-motion";
+import { Skeleton } from "@/components/ui/skeleton";
+import { useInfiniteClickstream, flattenClickstreamPages } from "@/hooks/useInfiniteClickstream";
+
+// Lazy load heavy clickstream sub-components for faster initial render
+const ConversionFunnel = lazy(() => import("./clickstream/ConversionFunnel").then(m => ({ default: m.ConversionFunnel })));
+const ClickHeatmap = lazy(() => import("./clickstream/ClickHeatmap").then(m => ({ default: m.ClickHeatmap })));
+const UserJourney = lazy(() => import("./clickstream/UserJourney").then(m => ({ default: m.UserJourney })));
+const DeviceAnalytics = lazy(() => import("./clickstream/DeviceAnalytics").then(m => ({ default: m.DeviceAnalytics })));
+const RRWebPlayer = lazy(() => import("./clickstream/RRWebPlayer").then(m => ({ default: m.RRWebPlayer })));
+const GeoAnalytics = lazy(() => import("./clickstream/GeoAnalytics").then(m => ({ default: m.GeoAnalytics })));
+const FormFieldAnalytics = lazy(() => import("./clickstream/FormFieldAnalytics").then(m => ({ default: m.FormFieldAnalytics })));
+const AIStruggleDetection = lazy(() => import("./clickstream/AIStruggleDetection").then(m => ({ default: m.AIStruggleDetection })));
+const ClickstreamComparisonTable = lazy(() => import("./clickstream/ClickstreamComparisonTable").then(m => ({ default: m.ClickstreamComparisonTable })));
+const ClickstreamSettings = lazy(() => import("./clickstream/ClickstreamSettings").then(m => ({ default: m.ClickstreamSettings })));
+
+// Non-lazy imports for essential components
+import { DateRangePicker } from "./clickstream/DateRangePicker";
+import { ClickstreamLayout } from "./clickstream/ClickstreamLayout";
+import { PrivacyControls, defaultPrivacySettings, PrivacySettings } from "./clickstream/PrivacyControls";
+import { ExportModal } from "./clickstream/ExportModal";
+import { EventsSearchFilter } from "./clickstream/EventsSearchFilter";
+
+// Loading skeleton for lazy components
+const ComponentSkeleton = () => (
+  <div className="space-y-4 p-4">
+    <Skeleton className="h-8 w-48" />
+    <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
+      <Skeleton className="h-32" />
+      <Skeleton className="h-32" />
+      <Skeleton className="h-32" />
+    </div>
+    <Skeleton className="h-64" />
+  </div>
+);
 
 export const AdminClickstream = () => {
   const [eventFilter, setEventFilter] = useState<string>("all");
   const [timeRange, setTimeRange] = useState<string>("24h");
+  const [customDateRange, setCustomDateRange] = useState<{ from: Date; to: Date } | null>(null);
+  const [isRefreshing, setIsRefreshing] = useState(false);
+  const [liveEventsCount, setLiveEventsCount] = useState(0);
+  const [lastUpdate, setLastUpdate] = useState<Date>(new Date());
+  const [eventsExpanded, setEventsExpanded] = useState(false);
+  const [notificationsEnabled, setNotificationsEnabled] = useState(false); // Disabled by default for performance
+  const [activeSection, setActiveSection] = useState("overview");
+  const [privacySettings, setPrivacySettings] = useState<PrivacySettings>(defaultPrivacySettings);
+  const [showExportModal, setShowExportModal] = useState(false);
+  const [searchQuery, setSearchQuery] = useState("");
+  const [pageFilter, setPageFilter] = useState("");
+  const queryClient = useQueryClient();
 
-  const { data: events, isLoading } = useQuery({
-    queryKey: ["clickstream-events", eventFilter, timeRange],
+  // Use infinite query for progressive loading of events - only fetch when section is active
+  const {
+    data: infiniteEventsData,
+    isLoading: isInfiniteLoading,
+    fetchNextPage,
+    hasNextPage,
+    isFetchingNextPage,
+    refetch: refetchInfinite,
+  } = useInfiniteClickstream({
+    eventFilter,
+    timeRange,
+    customDateRange,
+  });
+
+  // Flatten pages into single array for components - memoized
+  const events = useMemo(() => flattenClickstreamPages(infiniteEventsData), [infiniteEventsData]);
+  const isLoading = isInfiniteLoading;
+
+  // Update last update time when data changes - debounced
+  useEffect(() => {
+    if (events.length > 0) {
+      setLastUpdate(new Date());
+    }
+  }, [events.length]);
+
+  const refetch = refetchInfinite;
+
+  // Only fetch experiments when needed - lazy
+  const { data: experiments } = useQuery({
+    queryKey: ["ab-experiments-active"],
     queryFn: async () => {
-      let query = supabase
-        .from("clickstream_events")
-        .select("*")
-        .order("created_at", { ascending: false })
-        .limit(200);
-
-      if (eventFilter !== "all") {
-        query = query.eq("event_type", eventFilter);
-      }
-
-      const timeFilters: Record<string, number> = {
-        "1h": 1,
-        "24h": 24,
-        "7d": 168,
-        "30d": 720,
-      };
-
-      if (timeFilters[timeRange]) {
-        const since = new Date();
-        since.setHours(since.getHours() - timeFilters[timeRange]);
-        query = query.gte("created_at", since.toISOString());
-      }
-
-      const { data, error } = await query;
+      const { data, error } = await supabase
+        .from("ab_experiments")
+        .select("id, name, status")
+        .eq("status", "running")
+        .limit(5);
       if (error) throw error;
       return data;
     },
+    staleTime: 5 * 60 * 1000, // 5 minutes cache
+    gcTime: 10 * 60 * 1000,
+    refetchOnWindowFocus: false,
+    enabled: activeSection === "overview", // Only fetch when on overview
   });
 
-  const stats = {
+  // Real-time subscription - only when notifications are enabled
+  useEffect(() => {
+    if (!notificationsEnabled) return;
+
+    const channel = supabase
+      .channel('clickstream-realtime-v5')
+      .on('postgres_changes', {
+        event: 'INSERT',
+        schema: 'public',
+        table: 'clickstream_events'
+      }, (payload) => {
+        setLiveEventsCount(prev => prev + 1);
+        setLastUpdate(new Date());
+        
+        const newEvent = payload.new as any;
+        const eventInfo = newEvent.event_type === 'pageview' 
+          ? `Page: ${newEvent.page_url || 'Unknown'}`
+          : newEvent.event_type === 'click'
+            ? `Clicked: ${newEvent.element_text?.slice(0, 30) || 'Element'}`
+            : `Action: ${newEvent.event_type}`;
+        
+        toast.info(`New ${newEvent.event_type} event`, {
+          description: eventInfo,
+          duration: 2000,
+        });
+      })
+      .subscribe();
+
+    return () => { supabase.removeChannel(channel); };
+  }, [notificationsEnabled]);
+
+  const handleRefresh = async () => {
+    setIsRefreshing(true);
+    setLiveEventsCount(0);
+    try {
+      await refetch();
+      toast.success("Data refreshed");
+    } catch {
+      toast.error("Failed to refresh");
+    } finally {
+    setIsRefreshing(false);
+  }
+};
+
+  const handleDeleteSuccess = async () => {
+    await refetch();
+    setLiveEventsCount(0);
+  };
+
+  // Get unique pages for filter dropdown
+  const availablePages = useMemo(() => {
+    const pages = new Set(events?.map(e => e.page_url).filter(Boolean));
+    return Array.from(pages) as string[];
+  }, [events]);
+
+  // Filter events based on search
+  const filteredEvents = useMemo(() => {
+    if (!events) return [];
+    return events.filter(e => {
+      const matchesSearch = !searchQuery || 
+        e.element_text?.toLowerCase().includes(searchQuery.toLowerCase()) ||
+        e.session_id?.toLowerCase().includes(searchQuery.toLowerCase()) ||
+        e.page_url?.toLowerCase().includes(searchQuery.toLowerCase());
+      const matchesPage = !pageFilter || e.page_url === pageFilter;
+      return matchesSearch && matchesPage;
+    });
+  }, [events, searchQuery, pageFilter]);
+
+  const stats = useMemo(() => ({
     totalEvents: events?.length || 0,
     uniqueSessions: new Set(events?.map(e => e.session_id)).size,
     clicks: events?.filter(e => e.event_type === "click").length || 0,
     pageViews: events?.filter(e => e.event_type === "pageview").length || 0,
-  };
+  }), [events]);
 
-  const topPages = events?.reduce((acc, event) => {
-    if (event.page_url) {
-      acc[event.page_url] = (acc[event.page_url] || 0) + 1;
-    }
-    return acc;
-  }, {} as Record<string, number>) || {};
+  const sortedPages = useMemo(() => {
+    const topPages = events?.reduce((acc, event) => {
+      if (event.page_url) acc[event.page_url] = (acc[event.page_url] || 0) + 1;
+      return acc;
+    }, {} as Record<string, number>) || {};
+    return Object.entries(topPages).sort((a, b) => (b[1] as number) - (a[1] as number)).slice(0, 5);
+  }, [events]);
 
-  const sortedPages = Object.entries(topPages)
-    .sort(([, a], [, b]) => b - a)
-    .slice(0, 5);
-
-  const topElements = events?.reduce((acc, event) => {
-    if (event.element_text && event.event_type === "click") {
-      acc[event.element_text] = (acc[event.element_text] || 0) + 1;
-    }
-    return acc;
-  }, {} as Record<string, number>) || {};
-
-  const sortedElements = Object.entries(topElements)
-    .sort(([, a], [, b]) => b - a)
-    .slice(0, 5);
+  const virtualTableColumns = useMemo(() => [
+    { 
+      key: "event_type", 
+      header: "Type", 
+      width: 100,
+      render: (item: any) => (
+        <Badge className={`${getEventBadge(item.event_type)} text-xs`}>{item.event_type}</Badge>
+      )
+    },
+    { key: "element_text", header: "Element", render: (item: any) => item.element_text || "-" },
+    { key: "page_url", header: "Page", render: (item: any) => item.page_url?.slice(0, 40) || "-" },
+    { 
+      key: "session_id", 
+      header: "Session", 
+      width: 100,
+      render: (item: any) => <span className="font-mono text-xs">{item.session_id?.slice(0, 8)}...</span>
+    },
+    { 
+      key: "created_at", 
+      header: "Time", 
+      width: 120,
+      render: (item: any) => format(new Date(item.created_at), "MMM d, HH:mm")
+    },
+  ], []);
 
   const getEventBadge = (type: string) => {
     const colors: Record<string, string> = {
       click: "bg-primary/20 text-primary",
       pageview: "bg-secondary/20 text-secondary-foreground",
       scroll: "bg-accent/20 text-accent-foreground",
-      hover: "bg-muted text-muted-foreground",
     };
     return colors[type] || colors.click;
   };
 
-  return (
-    <div className="space-y-6">
-      <div className="flex items-center justify-between">
-        <div>
-          <h1 className="text-3xl font-bold">Clickstream Analytics</h1>
-          <p className="text-muted-foreground">Track user interactions and behavior</p>
+  // Render content based on active section
+  const renderContent = () => {
+    // Show skeleton while loading
+    if (isLoading) {
+      return (
+        <div className="space-y-4 sm:space-y-6">
+          <div className="grid grid-cols-2 sm:grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4">
+            {[...Array(4)].map((_, i) => (
+              <AdminCardSkeleton key={i} variant="stat" />
+            ))}
+          </div>
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 sm:gap-6">
+            <AdminCardSkeleton variant="list" />
+            <AdminCardSkeleton variant="list" />
+          </div>
         </div>
-        <div className="flex gap-2">
-          <Select value={timeRange} onValueChange={setTimeRange}>
-            <SelectTrigger className="w-32">
-              <Clock className="h-4 w-4 mr-2" />
-              <SelectValue />
-            </SelectTrigger>
-            <SelectContent>
-              <SelectItem value="1h">Last Hour</SelectItem>
-              <SelectItem value="24h">Last 24h</SelectItem>
-              <SelectItem value="7d">Last 7 Days</SelectItem>
-              <SelectItem value="30d">Last 30 Days</SelectItem>
-            </SelectContent>
-          </Select>
+      );
+    }
+
+    switch (activeSection) {
+      case "overview":
+        return (
+          <div className="space-y-4 sm:space-y-6">
+            {/* Stats Grid - Responsive */}
+            <div className="grid grid-cols-2 sm:grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4">
+              <Card className="overflow-hidden">
+                <CardContent className="p-4 sm:pt-6">
+                  <div className="flex items-center gap-2 sm:gap-3">
+                    <div className="p-2 sm:p-3 rounded-xl bg-primary/10 shrink-0">
+                      <BarChart3 className="h-4 w-4 sm:h-5 sm:w-5 text-primary" />
+                    </div>
+                    <div className="min-w-0">
+                      <p className="text-lg sm:text-2xl font-bold truncate">{stats.totalEvents.toLocaleString()}</p>
+                      <p className="text-xs sm:text-sm text-muted-foreground">Total Events</p>
+                    </div>
+                  </div>
+                </CardContent>
+              </Card>
+              <Card className="overflow-hidden">
+                <CardContent className="p-4 sm:pt-6">
+                  <div className="flex items-center gap-2 sm:gap-3">
+                    <div className="p-2 sm:p-3 rounded-xl bg-purple-500/10 shrink-0">
+                      <Users className="h-4 w-4 sm:h-5 sm:w-5 text-purple-600" />
+                    </div>
+                    <div className="min-w-0">
+                      <p className="text-lg sm:text-2xl font-bold truncate">{stats.uniqueSessions.toLocaleString()}</p>
+                      <p className="text-xs sm:text-sm text-muted-foreground">Sessions</p>
+                    </div>
+                  </div>
+                </CardContent>
+              </Card>
+              <Card className="overflow-hidden">
+                <CardContent className="p-4 sm:pt-6">
+                  <div className="flex items-center gap-2 sm:gap-3">
+                    <div className="p-2 sm:p-3 rounded-xl bg-red-500/10 shrink-0">
+                      <MousePointer className="h-4 w-4 sm:h-5 sm:w-5 text-red-500" />
+                    </div>
+                    <div className="min-w-0">
+                      <p className="text-lg sm:text-2xl font-bold truncate">{stats.clicks.toLocaleString()}</p>
+                      <p className="text-xs sm:text-sm text-muted-foreground">Clicks</p>
+                    </div>
+                  </div>
+                </CardContent>
+              </Card>
+              <Card className="overflow-hidden">
+                <CardContent className="p-4 sm:pt-6">
+                  <div className="flex items-center gap-2 sm:gap-3">
+                    <div className="p-2 sm:p-3 rounded-xl bg-blue-500/10 shrink-0">
+                      <Eye className="h-4 w-4 sm:h-5 sm:w-5 text-blue-500" />
+                    </div>
+                    <div className="min-w-0">
+                      <p className="text-lg sm:text-2xl font-bold truncate">{stats.pageViews.toLocaleString()}</p>
+                      <p className="text-xs sm:text-sm text-muted-foreground">Page Views</p>
+                    </div>
+                  </div>
+                </CardContent>
+              </Card>
+            </div>
+
+            {/* Top Pages & Recent Events - Responsive */}
+            <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 sm:gap-6">
+              <Card>
+                <CardHeader className="pb-3">
+                  <CardTitle className="text-sm sm:text-base">Top Pages</CardTitle>
+                </CardHeader>
+                <CardContent>
+                  {sortedPages.length === 0 ? (
+                    <p className="text-muted-foreground text-center py-6 sm:py-8 text-sm">No page data available</p>
+                  ) : (
+                    <div className="space-y-2 sm:space-y-3">
+                      {sortedPages.map(([page, count]) => (
+                        <div key={page} className="flex items-center justify-between gap-2">
+                          <span className="text-xs sm:text-sm truncate flex-1 min-w-0">{page}</span>
+                          <Badge variant="secondary" className="shrink-0">{count as number}</Badge>
+                        </div>
+                      ))}
+                    </div>
+                  )}
+                </CardContent>
+              </Card>
+
+              <Card>
+                <CardHeader className="pb-3">
+                  <CardTitle className="text-sm sm:text-base flex items-center justify-between">
+                    Recent Events
+                    <Button variant="ghost" size="sm" onClick={() => setEventsExpanded(!eventsExpanded)} className="h-8 w-8 p-0">
+                      {eventsExpanded ? <ChevronUp className="h-4 w-4" /> : <ChevronDown className="h-4 w-4" />}
+                    </Button>
+                  </CardTitle>
+                </CardHeader>
+                <CardContent>
+                  <div className="space-y-2">
+                    {events?.slice(0, eventsExpanded ? 20 : 5).map((event) => (
+                      <div key={event.id} className="flex items-center justify-between p-2 rounded bg-muted/30 gap-2">
+                        <div className="flex items-center gap-2 min-w-0 flex-1">
+                          <Badge className={`${getEventBadge(event.event_type)} shrink-0 text-xs`}>{event.event_type}</Badge>
+                          <span className="text-xs text-muted-foreground truncate">
+                            {event.element_text || event.page_url}
+                          </span>
+                        </div>
+                        <span className="text-xs text-muted-foreground shrink-0">
+                          {format(new Date(event.created_at), "HH:mm:ss")}
+                        </span>
+                      </div>
+                    ))}
+                    {(!events || events.length === 0) && (
+                      <p className="text-muted-foreground text-center py-6 text-sm">No events recorded yet</p>
+                    )}
+                  </div>
+                </CardContent>
+              </Card>
+            </div>
+          </div>
+        );
+
+      case "funnel":
+        return (
+          <Suspense fallback={<ComponentSkeleton />}>
+            <ConversionFunnel events={events || []} />
+          </Suspense>
+        );
+
+      case "journeys":
+        return (
+          <Suspense fallback={<ComponentSkeleton />}>
+            <UserJourney events={events || []} />
+          </Suspense>
+        );
+
+      case "clicks":
+        return (
+          <Card>
+            <CardHeader><CardTitle className="text-sm sm:text-base">Click Analysis</CardTitle></CardHeader>
+            <CardContent className="overflow-x-auto">
+              <Table>
+                <TableHeader>
+                  <TableRow>
+                    <TableHead className="text-xs">Element</TableHead>
+                    <TableHead className="text-xs hidden sm:table-cell">Page</TableHead>
+                    <TableHead className="text-xs">Time</TableHead>
+                  </TableRow>
+                </TableHeader>
+                <TableBody>
+                  {events?.filter(e => e.event_type === "click").slice(0, 20).map(event => (
+                    <TableRow key={event.id}>
+                      <TableCell className="max-w-[120px] sm:max-w-[200px] truncate text-xs sm:text-sm">{event.element_text || event.element_id || "Unknown"}</TableCell>
+                      <TableCell className="max-w-[150px] truncate text-xs sm:text-sm hidden sm:table-cell">{event.page_url}</TableCell>
+                      <TableCell className="text-xs sm:text-sm">{format(new Date(event.created_at), "MMM d, HH:mm")}</TableCell>
+                    </TableRow>
+                  ))}
+                </TableBody>
+              </Table>
+            </CardContent>
+          </Card>
+        );
+
+      case "click-heatmap":
+      case "scroll-heatmap":
+        return (
+          <Suspense fallback={<ComponentSkeleton />}>
+            <ClickHeatmap events={events || []} />
+          </Suspense>
+        );
+
+      case "session-replay":
+        return (
+          <Suspense fallback={<ComponentSkeleton />}>
+            <RRWebPlayer />
+          </Suspense>
+        );
+
+      case "device-analytics":
+        return (
+          <Suspense fallback={<ComponentSkeleton />}>
+            <DeviceAnalytics events={events || []} />
+          </Suspense>
+        );
+
+      case "geo-analytics":
+        return (
+          <Suspense fallback={<ComponentSkeleton />}>
+            <GeoAnalytics events={events || []} />
+          </Suspense>
+        );
+
+      case "events":
+        return (
+          <Card>
+            <CardHeader>
+              <CardTitle className="text-sm sm:text-base flex items-center justify-between">
+                All Events ({events?.length || 0})
+                {hasNextPage && (
+                  <Badge variant="outline" className="text-xs">More available</Badge>
+                )}
+              </CardTitle>
+            </CardHeader>
+            <CardContent>
+              <VirtualTable
+                data={events || []}
+                columns={virtualTableColumns}
+                rowHeight={48}
+                getRowKey={(item: any) => item.id}
+                emptyMessage="No events recorded yet"
+                className="max-h-[500px]"
+                isLoading={isLoading}
+                hasNextPage={hasNextPage}
+                isFetchingNextPage={isFetchingNextPage}
+                fetchNextPage={fetchNextPage}
+              />
+            </CardContent>
+          </Card>
+        );
+
+      case "privacy":
+        return (
+          <PrivacyControls
+            settings={privacySettings}
+            onSettingsChange={setPrivacySettings}
+            onSave={() => {
+              localStorage.setItem("rrweb_privacy_settings", JSON.stringify(privacySettings));
+            }}
+          />
+        );
+
+      case "form-analytics":
+        return (
+          <Suspense fallback={<ComponentSkeleton />}>
+            <FormFieldAnalytics events={events || []} />
+          </Suspense>
+        );
+
+      case "ai-struggle":
+        return (
+          <Suspense fallback={<ComponentSkeleton />}>
+            <AIStruggleDetection events={events || []} />
+          </Suspense>
+        );
+
+      case "comparison":
+        return (
+          <Suspense fallback={<ComponentSkeleton />}>
+            <ClickstreamComparisonTable />
+          </Suspense>
+        );
+
+      case "settings":
+        return (
+          <Suspense fallback={<ComponentSkeleton />}>
+            <ClickstreamSettings
+              totalEvents={stats.totalEvents}
+              uniqueSessions={stats.uniqueSessions}
+              clicks={stats.clicks}
+              pageViews={stats.pageViews}
+              onDeleteSuccess={handleDeleteSuccess}
+            />
+          </Suspense>
+        );
+
+      default:
+        return <div className="text-center py-12 text-muted-foreground">Select a section from the sidebar</div>;
+    }
+  };
+
+  return (
+    <div className="space-y-4 sm:space-y-6">
+      {/* Header - Responsive */}
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+        <div className="flex flex-wrap items-center gap-2 sm:gap-3">
+          <div>
+            <h1 className="text-xl sm:text-2xl lg:text-3xl font-bold">Clickstream Analytics</h1>
+            <p className="text-xs sm:text-sm text-muted-foreground">Track user interactions and behavior</p>
+          </div>
+          <motion.div animate={{ scale: [1, 1.05, 1] }} transition={{ duration: 2, repeat: Infinity }}>
+            <Badge variant="outline" className="bg-emerald-500/10 text-emerald-600 border-emerald-500/30 text-xs">
+              <Radio className="h-3 w-3 mr-1 animate-pulse" />Live
+            </Badge>
+          </motion.div>
+          {liveEventsCount > 0 && (
+            <Badge variant="secondary" className="bg-primary/10 text-primary text-xs">+{liveEventsCount} new</Badge>
+          )}
+        </div>
+        
+        {/* Action Buttons - Responsive */}
+        <div className="flex flex-wrap gap-2">
+          {/* Export Button */}
+          <Button 
+            variant="outline" 
+            size="sm" 
+            onClick={() => setShowExportModal(true)}
+            className="gap-1 text-xs sm:text-sm"
+          >
+            <Download className="h-3 w-3 sm:h-4 sm:w-4" />
+            <span className="hidden sm:inline">Export</span>
+          </Button>
+
+          {/* Notifications Toggle */}
+          <Button 
+            variant={notificationsEnabled ? "secondary" : "outline"} 
+            size="sm" 
+            onClick={() => setNotificationsEnabled(!notificationsEnabled)}
+            className="gap-1 text-xs sm:text-sm"
+          >
+            <Bell className={`h-3 w-3 sm:h-4 sm:w-4 ${notificationsEnabled ? "text-primary" : ""}`} />
+            <span className="hidden sm:inline">{notificationsEnabled ? "On" : "Off"}</span>
+          </Button>
+
+          {/* Refresh Button */}
+          <Button 
+            variant="outline" 
+            size="sm" 
+            onClick={handleRefresh} 
+            disabled={isRefreshing}
+            className="gap-1 text-xs sm:text-sm"
+          >
+            <RefreshCw className={`h-3 w-3 sm:h-4 sm:w-4 ${isRefreshing ? "animate-spin" : ""}`} />
+            <span className="hidden sm:inline">Refresh</span>
+          </Button>
+
+          {/* Date Range Picker */}
+          <DateRangePicker 
+            value={timeRange} 
+            onChange={(value, range) => { setTimeRange(value); setCustomDateRange(range || null); }}
+            customRange={customDateRange}
+          />
+
+          {/* Event Filter */}
           <Select value={eventFilter} onValueChange={setEventFilter}>
-            <SelectTrigger className="w-36">
+            <SelectTrigger className="w-24 sm:w-32 text-xs sm:text-sm h-8 sm:h-9">
               <SelectValue />
             </SelectTrigger>
             <SelectContent>
@@ -112,147 +580,29 @@ export const AdminClickstream = () => {
               <SelectItem value="click">Clicks</SelectItem>
               <SelectItem value="pageview">Page Views</SelectItem>
               <SelectItem value="scroll">Scrolls</SelectItem>
-              <SelectItem value="hover">Hovers</SelectItem>
             </SelectContent>
           </Select>
         </div>
       </div>
 
-      <div className="grid gap-4 md:grid-cols-4">
-        <Card>
-          <CardHeader className="flex flex-row items-center justify-between pb-2">
-            <CardTitle className="text-sm font-medium">Total Events</CardTitle>
-            <BarChart3 className="h-4 w-4 text-muted-foreground" />
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold">{stats.totalEvents}</div>
-          </CardContent>
-        </Card>
-        <Card>
-          <CardHeader className="flex flex-row items-center justify-between pb-2">
-            <CardTitle className="text-sm font-medium">Unique Sessions</CardTitle>
-            <Users className="h-4 w-4 text-muted-foreground" />
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold">{stats.uniqueSessions}</div>
-          </CardContent>
-        </Card>
-        <Card>
-          <CardHeader className="flex flex-row items-center justify-between pb-2">
-            <CardTitle className="text-sm font-medium">Clicks</CardTitle>
-            <MousePointer className="h-4 w-4 text-muted-foreground" />
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold">{stats.clicks}</div>
-          </CardContent>
-        </Card>
-        <Card>
-          <CardHeader className="flex flex-row items-center justify-between pb-2">
-            <CardTitle className="text-sm font-medium">Page Views</CardTitle>
-            <Eye className="h-4 w-4 text-muted-foreground" />
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold">{stats.pageViews}</div>
-          </CardContent>
-        </Card>
-      </div>
+      {/* Tree Navigation Layout */}
+      <ClickstreamLayout activeSection={activeSection} onSectionChange={setActiveSection}>
+        {isLoading ? (
+          <div className="space-y-4">
+            {[...Array(3)].map((_, i) => <div key={i} className="h-24 sm:h-32 bg-muted rounded-lg animate-pulse" />)}
+          </div>
+        ) : (
+          renderContent()
+        )}
+      </ClickstreamLayout>
 
-      <div className="grid gap-6 md:grid-cols-2">
-        <Card>
-          <CardHeader>
-            <CardTitle className="flex items-center gap-2">
-              <Link className="h-5 w-5" />
-              Top Pages
-            </CardTitle>
-            <CardDescription>Most visited pages</CardDescription>
-          </CardHeader>
-          <CardContent>
-            {sortedPages.length === 0 ? (
-              <div className="text-center py-4 text-muted-foreground">No data yet</div>
-            ) : (
-              <div className="space-y-3">
-                {sortedPages.map(([page, count], i) => (
-                  <div key={page} className="flex items-center justify-between">
-                    <div className="flex items-center gap-2">
-                      <span className="text-muted-foreground w-4">{i + 1}.</span>
-                      <span className="font-medium truncate max-w-64">{page}</span>
-                    </div>
-                    <Badge variant="secondary">{count}</Badge>
-                  </div>
-                ))}
-              </div>
-            )}
-          </CardContent>
-        </Card>
-
-        <Card>
-          <CardHeader>
-            <CardTitle className="flex items-center gap-2">
-              <MousePointer className="h-5 w-5" />
-              Top Clicked Elements
-            </CardTitle>
-            <CardDescription>Most clicked buttons and links</CardDescription>
-          </CardHeader>
-          <CardContent>
-            {sortedElements.length === 0 ? (
-              <div className="text-center py-4 text-muted-foreground">No data yet</div>
-            ) : (
-              <div className="space-y-3">
-                {sortedElements.map(([element, count], i) => (
-                  <div key={element} className="flex items-center justify-between">
-                    <div className="flex items-center gap-2">
-                      <span className="text-muted-foreground w-4">{i + 1}.</span>
-                      <span className="font-medium truncate max-w-64">{element}</span>
-                    </div>
-                    <Badge variant="secondary">{count}</Badge>
-                  </div>
-                ))}
-              </div>
-            )}
-          </CardContent>
-        </Card>
-      </div>
-
-      <Card>
-        <CardHeader>
-          <CardTitle>Recent Events</CardTitle>
-          <CardDescription>Latest user interactions</CardDescription>
-        </CardHeader>
-        <CardContent>
-          {isLoading ? (
-            <div className="text-center py-8 text-muted-foreground">Loading events...</div>
-          ) : events?.length === 0 ? (
-            <div className="text-center py-8 text-muted-foreground">No events recorded yet</div>
-          ) : (
-            <Table>
-              <TableHeader>
-                <TableRow>
-                  <TableHead>Event</TableHead>
-                  <TableHead>Page</TableHead>
-                  <TableHead>Element</TableHead>
-                  <TableHead>Session</TableHead>
-                  <TableHead>Time</TableHead>
-                </TableRow>
-              </TableHeader>
-              <TableBody>
-                {events?.slice(0, 50).map((event) => (
-                  <TableRow key={event.id}>
-                    <TableCell>
-                      <Badge className={getEventBadge(event.event_type)}>{event.event_type}</Badge>
-                    </TableCell>
-                    <TableCell className="max-w-48 truncate">{event.page_url || "-"}</TableCell>
-                    <TableCell className="max-w-32 truncate">{event.element_text || "-"}</TableCell>
-                    <TableCell className="font-mono text-xs">{event.session_id.slice(0, 8)}...</TableCell>
-                    <TableCell className="text-muted-foreground">
-                      {format(new Date(event.created_at), "HH:mm:ss")}
-                    </TableCell>
-                  </TableRow>
-                ))}
-              </TableBody>
-            </Table>
-          )}
-        </CardContent>
-      </Card>
+      {/* Export Modal */}
+      <ExportModal
+        open={showExportModal}
+        onOpenChange={setShowExportModal}
+        events={events || []}
+        stats={stats}
+      />
     </div>
   );
 };

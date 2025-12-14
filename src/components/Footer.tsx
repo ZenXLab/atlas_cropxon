@@ -1,4 +1,4 @@
-import { Mail, MapPin, FileText, Shield, HeadphonesIcon, ArrowUpRight } from "lucide-react";
+import { Mail, MapPin, FileText, Shield, HeadphonesIcon, ArrowUpRight, Building2 } from "lucide-react";
 import { Link } from "react-router-dom";
 import cropxonLogo from "@/assets/cropxon-logo.png";
 
@@ -12,11 +12,11 @@ const footerLinks = {
     { name: "Managed IT Services", href: "/services/managed-it" },
   ],
   company: [
-    { name: "About CropXon", href: "/#about" },
-    { name: "Leadership", href: "#" },
-    { name: "Careers", href: "#" },
-    { name: "Blog", href: "#" },
-    { name: "Case Studies", href: "#" },
+    { name: "About CropXon", href: "/about" },
+    { name: "Features", href: "/features" },
+    { name: "Industries", href: "/industries" },
+    { name: "Contact", href: "/contact" },
+    { name: "Get Quote", href: "/get-quote" },
   ],
   legal: [
     { name: "Privacy Policy", href: "#" },
@@ -44,14 +44,19 @@ export const Footer = () => {
         <div className="py-16 lg:py-20 grid sm:grid-cols-2 lg:grid-cols-5 gap-10 lg:gap-12">
           {/* Brand Column */}
           <div className="lg:col-span-2">
-            <Link to="/" className="inline-block group">
-              <img 
-                src={cropxonLogo} 
-                alt="CropXon" 
-                className="h-10 w-auto mb-4 transition-transform duration-300 group-hover:scale-105" 
-              />
+            <Link to="/" className="inline-block group mb-4">
+              <div className="flex items-center gap-3">
+                <img 
+                  src={cropxonLogo} 
+                  alt="CropXon Innovations Pvt. Ltd." 
+                  className="h-12 w-auto transition-transform duration-300 group-hover:scale-105 dark:brightness-110 dark:contrast-125" 
+                />
+              </div>
             </Link>
-            <p className="text-base font-heading font-bold text-primary mb-2 tracking-tight">ATLAS Division</p>
+            <p className="text-lg font-heading font-bold text-foreground mb-1 tracking-tight">
+              CropXon Innovations Pvt. Ltd.
+            </p>
+            <p className="text-base font-medium text-primary mb-3">ATLAS Division</p>
             <p className="text-muted-foreground mb-8 max-w-sm leading-relaxed text-sm">
               Consulting & Digital Transformation wing of CropXon Innovations Pvt. Ltd. 
               Building the next generation of enterprise solutions.
@@ -59,10 +64,10 @@ export const Footer = () => {
 
             {/* Legal Info */}
             <div className="space-y-1.5 text-xs text-muted-foreground">
-              <p><span className="text-foreground/60 font-medium">CIN:</span> U62010OD2025PTC051089</p>
-              <p><span className="text-foreground/60 font-medium">GSTIN:</span> 21AANCC1954F1ZW</p>
-              <p><span className="text-foreground/60 font-medium">Udyam:</span> UDYAM-OD-03-0076858</p>
-              <p><span className="text-foreground/60 font-medium">DPIIT:</span> DIPP230789 (Valid till: 15-10-2035)</p>
+              <p><span className="text-foreground font-medium">CIN:</span> U62010OD2025PTC051089</p>
+              <p><span className="text-foreground font-medium">GSTIN:</span> 21AANCC1954F1ZW</p>
+              <p><span className="text-foreground font-medium">Udyam:</span> UDYAM-OD-03-0076858</p>
+              <p><span className="text-foreground font-medium">DPIIT:</span> DIPP230789 (Valid till: 15-10-2035)</p>
             </div>
           </div>
 
@@ -90,13 +95,13 @@ export const Footer = () => {
             <ul className="space-y-3">
               {footerLinks.company.map((link) => (
                 <li key={link.name}>
-                  <a 
-                    href={link.href} 
+                  <Link 
+                    to={link.href} 
                     className="text-muted-foreground hover:text-foreground transition-colors text-sm font-medium inline-flex items-center gap-1 group"
                   >
                     {link.name}
                     <ArrowUpRight className="h-3 w-3 opacity-0 -translate-x-1 group-hover:opacity-100 group-hover:translate-x-0 transition-all duration-200" />
-                  </a>
+                  </Link>
                 </li>
               ))}
             </ul>
@@ -129,21 +134,33 @@ export const Footer = () => {
 
         {/* Address Bar */}
         <div className="py-6 border-t border-border/40">
-          <div className="flex items-start gap-3 text-sm text-muted-foreground">
-            <MapPin className="h-4 w-4 text-primary mt-0.5 flex-shrink-0" />
-            <div>
-              <p className="text-foreground/70 font-medium text-xs mb-0.5">Registered Office</p>
-              <p className="text-sm">CropXon Innovations Pvt. Ltd., Technology Park, Innovation District, India</p>
+          <div className="grid sm:grid-cols-2 gap-6">
+            {/* Registered Office - Bhubaneswar */}
+            <div className="flex items-start gap-3 text-sm text-muted-foreground">
+              <MapPin className="h-4 w-4 text-primary mt-0.5 flex-shrink-0" />
+              <div>
+                <p className="text-foreground/70 font-medium text-xs mb-0.5">Registered Office - Bhubaneswar</p>
+                <p className="text-sm">CropXon Innovations Pvt. Ltd., Tech Hub, Infocity, Bhubaneswar, Odisha 751024, India</p>
+              </div>
+            </div>
+            
+            {/* Branch Office - Bangalore */}
+            <div className="flex items-start gap-3 text-sm text-muted-foreground">
+              <Building2 className="h-4 w-4 text-primary mt-0.5 flex-shrink-0" />
+              <div>
+                <p className="text-foreground/70 font-medium text-xs mb-0.5">Branch Office - Bangalore</p>
+                <p className="text-sm">CropXon Innovations Pvt. Ltd., Electronic City, Bangalore, Karnataka 560100, India</p>
+              </div>
             </div>
           </div>
         </div>
 
         {/* Bottom Bar */}
         <div className="py-5 border-t border-border/40 flex flex-col sm:flex-row items-center justify-between gap-4">
-          <div className="flex items-center gap-2 text-xs text-muted-foreground">
-            <span>© {new Date().getFullYear()} CropXon Innovations Pvt. Ltd.</span>
-            <span className="text-border">•</span>
-            <a href="https://atlas.cropxon.com" className="text-primary hover:text-foreground transition-colors font-medium">
+          <div className="flex items-center gap-2 text-xs">
+            <span className="text-foreground font-medium">© {new Date().getFullYear()} CropXon Innovations Pvt. Ltd.</span>
+            <span className="text-muted-foreground">•</span>
+            <a href="https://atlas.cropxon.com" className="text-primary hover:text-primary/80 transition-colors font-semibold">
               atlas.cropxon.com
             </a>
           </div>

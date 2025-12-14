@@ -13,46 +13,50 @@ export const useTenantRole = () => {
 
   useEffect(() => {
     const checkTenantRole = async () => {
-      // Check for dev mode first
-      const devMode = localStorage.getItem(DEV_MODE_KEY) === "true";
-      const devType = localStorage.getItem(DEV_MODE_TYPE_KEY);
-      const tenantRole = localStorage.getItem("atlas_tenant_role") as TenantRole | null;
+      // Dev mode ONLY works in development builds
+      const isDevBuild = import.meta.env.DEV === true;
       
-      if (devMode) {
-        // In dev mode, check for tenant role override
-        if (tenantRole === "super_admin") {
-          setRole("super_admin");
-          setIsSuperAdmin(true);
-          setIsTenantAdmin(true);
-        } else if (devType === "client") {
-          // Default to employee for regular client dev mode
-          setRole("employee");
-          setIsSuperAdmin(false);
-          setIsTenantAdmin(false);
+      if (isDevBuild) {
+        const devMode = localStorage.getItem(DEV_MODE_KEY) === "true";
+        const devType = localStorage.getItem(DEV_MODE_TYPE_KEY);
+        const tenantRole = localStorage.getItem("atlas_tenant_role") as TenantRole | null;
+        
+        if (devMode) {
+          // In dev mode, check for tenant role override
+          if (tenantRole === "super_admin") {
+            setRole("super_admin");
+            setIsSuperAdmin(true);
+            setIsTenantAdmin(true);
+          } else if (devType === "client") {
+            // Default to employee for regular client dev mode
+            setRole("employee");
+            setIsSuperAdmin(false);
+            setIsTenantAdmin(false);
+          }
+          setLoading(false);
+          return;
         }
-        setLoading(false);
-        return;
+
+        // Skip DB check for dev mode users in development
+        if (user?.id.startsWith("dev-")) {
+          if (tenantRole === "super_admin") {
+            setRole("super_admin");
+            setIsSuperAdmin(true);
+            setIsTenantAdmin(true);
+          } else {
+            setRole("employee");
+            setIsSuperAdmin(false);
+            setIsTenantAdmin(false);
+          }
+          setLoading(false);
+          return;
+        }
       }
 
       if (!user) {
         setRole(null);
         setIsSuperAdmin(false);
         setIsTenantAdmin(false);
-        setLoading(false);
-        return;
-      }
-
-      // Skip DB check for dev mode users
-      if (user.id.startsWith("dev-")) {
-        if (tenantRole === "super_admin") {
-          setRole("super_admin");
-          setIsSuperAdmin(true);
-          setIsTenantAdmin(true);
-        } else {
-          setRole("employee");
-          setIsSuperAdmin(false);
-          setIsTenantAdmin(false);
-        }
         setLoading(false);
         return;
       }

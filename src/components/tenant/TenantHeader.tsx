@@ -5,7 +5,6 @@ import {
   Plus,
   UserPlus,
   Ticket,
-  Bell,
   HelpCircle,
   ChevronDown,
   User,
@@ -33,14 +32,8 @@ import { useTenant } from "./TenantLayout";
 import { cn } from "@/lib/utils";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { UpgradePlanModal } from "./modals/UpgradePlanModal";
+import { TenantNotificationBell } from "./TenantNotificationBell";
 
-const notifications = [
-  { id: 1, title: "Payroll processing complete", severity: "success", time: "2m ago" },
-  { id: 2, title: "3 BGV checks pending review", severity: "warning", time: "15m ago" },
-  { id: 3, title: "New compliance deadline: PF filing", severity: "danger", time: "1h ago" },
-  { id: 4, title: "Employee John Doe joined", severity: "info", time: "2h ago" },
-  { id: 5, title: "OpZenix workflow completed", severity: "success", time: "3h ago" },
-];
 
 export const TenantHeader: React.FC = () => {
   const { isTrialMode, trialDaysLeft, tenantName, currentPlan, billingCycleEnd } = useTenant();
@@ -181,37 +174,8 @@ export const TenantHeader: React.FC = () => {
             </DropdownMenuContent>
           </DropdownMenu>
 
-          {/* Notifications */}
-          <DropdownMenu>
-            <DropdownMenuTrigger asChild>
-              <Button variant="ghost" size="icon" className="relative h-9 w-9 rounded-lg hover:bg-[#F7F9FC]">
-                <Bell className="w-5 h-5 text-[#6B7280]" />
-                <span className="absolute -top-0.5 -right-0.5 w-4 h-4 bg-[#E23E57] rounded-full text-[10px] font-bold text-white flex items-center justify-center animate-pulse">
-                  5
-                </span>
-              </Button>
-            </DropdownMenuTrigger>
-            <DropdownMenuContent align="end" className="w-80">
-              <div className="px-3 py-2 border-b border-gray-100">
-                <h4 className="font-semibold text-sm text-[#0F1E3A]">Notifications</h4>
-              </div>
-              {notifications.map((notif) => (
-                <DropdownMenuItem key={notif.id} className="flex items-start gap-3 p-3">
-                  <div className={cn("px-2 py-0.5 rounded text-xs font-medium", getSeverityColor(notif.severity))}>
-                    {notif.severity}
-                  </div>
-                  <div className="flex-1">
-                    <p className="text-sm text-[#0F1E3A]">{notif.title}</p>
-                    <p className="text-xs text-[#6B7280]">{notif.time}</p>
-                  </div>
-                </DropdownMenuItem>
-              ))}
-              <DropdownMenuSeparator />
-              <DropdownMenuItem className="justify-center text-[#005EEB] font-medium">
-                View all notifications
-              </DropdownMenuItem>
-            </DropdownMenuContent>
-          </DropdownMenu>
+          {/* Notifications - Using TenantNotificationBell */}
+          <TenantNotificationBell />
 
           {/* Help */}
           <Button variant="ghost" size="icon" className="h-9 w-9 rounded-lg hover:bg-[#F7F9FC]">

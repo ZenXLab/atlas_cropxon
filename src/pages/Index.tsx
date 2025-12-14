@@ -2,11 +2,14 @@ import { useState } from "react";
 import { Helmet } from "react-helmet-async";
 import { Header } from "@/components/Header";
 import { HeroSection } from "@/components/HeroSection";
+import { StatsSection } from "@/components/StatsSection";
 import { AboutSection } from "@/components/AboutSection";
 import { PillarsSection } from "@/components/PillarsSection";
+import { DemoVideoSection } from "@/components/DemoVideoSection";
 import { WhyChooseSection } from "@/components/WhyChooseSection";
-import { PricingCalculator } from "@/components/PricingCalculator";
-import { TestimonialsSection } from "@/components/TestimonialsSection";
+import { ComparisonTable } from "@/components/ComparisonTable";
+import { PricingSection } from "@/components/PricingSection";
+import { EnhancedTestimonialsSection } from "@/components/EnhancedTestimonialsSection";
 import { Footer } from "@/components/Footer";
 import { QuoteModal } from "@/components/QuoteModal";
 
@@ -15,10 +18,11 @@ const Index = () => {
 
   const structuredData = {
     "@context": "https://schema.org",
-    "@type": "Organization",
+    "@type": "SoftwareApplication",
     "name": "CropXon ATLAS",
-    "description": "Enterprise-grade consulting, AI solutions, digital engineering, and technology transformation services",
+    "description": "AI-powered Workforce Operating System - From Hire to Retire and everything in between. Unified HR, Payroll, Compliance, Finance, Recruitment, Projects, and Operations.",
     "url": "https://atlas.cropxon.com",
+    "applicationCategory": "BusinessApplication",
     "logo": "https://atlas.cropxon.com/logo.png",
     "sameAs": [
       "https://twitter.com/CropXon",
@@ -50,9 +54,9 @@ const Index = () => {
   return (
     <>
       <Helmet>
-        <title>CropXon ATLAS | Enterprise Consulting & Digital Transformation Services</title>
-        <meta name="description" content="ATLAS by CropXon - Enterprise-grade consulting, AI solutions, digital engineering, cloud services, and technology transformation. Get custom quotes for your business needs." />
-        <meta name="keywords" content="digital transformation, AI consulting, enterprise solutions, cloud services, DevOps, cybersecurity, managed IT services, UX design, software development, India" />
+        <title>CropXon ATLAS | AI-Powered Workforce Operating System - From Hire to Retire</title>
+        <meta name="description" content="ATLAS by CropXon - The AI-powered Workforce OS that automates HR, Payroll, Compliance, Finance, Recruitment, Projects, and Operations for modern enterprises. From hire to retire and everything in between." />
+        <meta name="keywords" content="workforce management, HR software, payroll automation, compliance management, HRMS, enterprise software, AI HR, workforce OS, India payroll, employee management" />
         <link rel="canonical" href="https://atlas.cropxon.com" />
         
         {/* Open Graph */}
@@ -73,11 +77,15 @@ const Index = () => {
         </script>
       </Helmet>
 
-      <main className="min-h-screen bg-background">
+      <div className="min-h-screen bg-background">
         <Header onQuoteClick={() => setQuoteModalOpen(true)} />
-        
+        <main className="pt-16 lg:pt-18">
         <article>
           <HeroSection onQuoteClick={() => setQuoteModalOpen(true)} />
+          
+          <section aria-labelledby="stats-heading">
+            <StatsSection />
+          </section>
           
           <section aria-labelledby="about-heading">
             <AboutSection />
@@ -87,22 +95,30 @@ const Index = () => {
             <PillarsSection />
           </section>
           
+          <section aria-labelledby="demo-heading">
+            <DemoVideoSection />
+          </section>
+          
           <section aria-labelledby="why-choose-heading">
             <WhyChooseSection />
           </section>
           
+          <section aria-labelledby="comparison-heading">
+            <ComparisonTable />
+          </section>
+          
           <section id="pricing" aria-labelledby="pricing-heading">
-            <PricingCalculator />
+            <PricingSection />
           </section>
           
           <section aria-labelledby="testimonials-heading">
-            <TestimonialsSection />
+            <EnhancedTestimonialsSection />
           </section>
         </article>
-        
+        </main>
         <Footer />
         <QuoteModal open={quoteModalOpen} onOpenChange={setQuoteModalOpen} />
-      </main>
+      </div>
     </>
   );
 };

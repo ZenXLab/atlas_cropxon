@@ -23,6 +23,16 @@ interface InvoiceData {
   service_type: string | null;
 }
 
+// HTML entity encoding to prevent XSS attacks
+const escapeHtml = (text: string | undefined | null): string => {
+  if (text === undefined || text === null) return '';
+  const str = String(text);
+  const htmlEscapes: Record<string, string> = {
+    '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;'
+  };
+  return str.replace(/[&<>"']/g, (char) => htmlEscapes[char] || char);
+};
+
 serve(async (req) => {
   if (req.method === 'OPTIONS') {
     return new Response(null, { headers: corsHeaders });
@@ -39,14 +49,28 @@ serve(async (req) => {
       year: 'numeric'
     });
 
-    // Generate professional HTML invoice
+    // Sanitize all user inputs to prevent XSS
+    const safe = {
+      invoice_number: escapeHtml(invoiceData.invoice_number),
+      client_name: escapeHtml(invoiceData.client_name),
+      client_email: escapeHtml(invoiceData.client_email),
+      client_company: escapeHtml(invoiceData.client_company),
+      client_phone: escapeHtml(invoiceData.client_phone),
+      quote_number: escapeHtml(invoiceData.quote_number),
+      service_type: escapeHtml(invoiceData.service_type),
+      notes: escapeHtml(invoiceData.notes),
+      status: escapeHtml(invoiceData.status),
+    };
+
+    // Generate professional HTML invoice with sanitized data
     const htmlContent = `
 <!DOCTYPE html>
 <html lang="en">
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Invoice ${invoiceData.invoice_number}</title>
+  <meta http-equiv="Content-Security-Policy" content="default-src 'self'; style-src 'unsafe-inline';">
+  <title>Invoice ${safe.invoice_number}</title>
   <style>
     * { margin: 0; padding: 0; box-sizing: border-box; }
     body { 
@@ -267,8 +291,8 @@ serve(async (req) => {
       </div>
       <div class="invoice-title">
         <h2>INVOICE</h2>
-        <div class="invoice-number">${invoiceData.invoice_number}</div>
-        <span class="status-badge status-${invoiceData.status}">${invoiceData.status}</span>
+        <div class="invoice-number">${safe.invoice_number}</div>
+        <span class="status-badge status-${safe.status}">${safe.status}</span>
       </div>
     </div>
 
@@ -276,10 +300,10 @@ serve(async (req) => {
       <div class="info-grid">
         <div class="info-section">
           <h3>Bill To</h3>
-          <p class="company-name">${invoiceData.client_company || invoiceData.client_name}</p>
-          <p>${invoiceData.client_name}</p>
-          <p>${invoiceData.client_email}</p>
-          ${invoiceData.client_phone ? `<p>${invoiceData.client_phone}</p>` : ''}
+          <p class="company-name">${safe.client_company || safe.client_name}</p>
+          <p>${safe.client_name}</p>
+          <p>${safe.client_email}</p>
+          ${safe.client_phone ? `<p>${safe.client_phone}</p>` : ''}
         </div>
         <div class="info-section">
           <h3>From</h3>
@@ -301,7 +325,7 @@ serve(async (req) => {
         </div>
         <div class="date-item">
           <label>Quote Reference</label>
-          <span>${invoiceData.quote_number || 'N/A'}</span>
+          <span>${safe.quote_number || 'N/A'}</span>
         </div>
       </div>
 
@@ -315,8 +339,8 @@ serve(async (req) => {
         </thead>
         <tbody>
           <tr>
-            <td>Professional Services as per Quote ${invoiceData.quote_number || ''}</td>
-            <td>${invoiceData.service_type ? invoiceData.service_type.replace(/-/g, ' ').replace(/\b\w/g, l => l.toUpperCase()) : 'Technology Services'}</td>
+            <td>Professional Services as per Quote ${safe.quote_number || ''}</td>
+            <td>${safe.service_type ? safe.service_type.replace(/-/g, ' ').replace(/\b\w/g, (l: string) => l.toUpperCase()) : 'Technology Services'}</td>
             <td>${formatCurrency(invoiceData.amount)}</td>
           </tr>
         </tbody>
@@ -339,10 +363,10 @@ serve(async (req) => {
         </div>
       </div>
 
-      ${invoiceData.notes ? `
+      ${safe.notes ? `
       <div class="notes-section">
         <h4>Notes</h4>
-        <p>${invoiceData.notes}</p>
+        <p>${safe.notes}</p>
       </div>
       ` : ''}
 

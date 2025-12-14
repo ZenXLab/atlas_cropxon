@@ -20,6 +20,7 @@ import {
 } from "lucide-react";
 import { z } from "zod";
 import { useAuth } from "@/hooks/useAuth";
+import { ForgotPasswordModal } from "@/components/auth/ForgotPasswordModal";
 
 const loginSchema = z.object({
   email: z.string().email("Please enter a valid email address"),
@@ -29,6 +30,7 @@ const loginSchema = z.object({
 const TenantAuth = () => {
   const [loading, setLoading] = useState(false);
   const [showPassword, setShowPassword] = useState(false);
+  const [showForgotPassword, setShowForgotPassword] = useState(false);
   const [formData, setFormData] = useState({
     email: "",
     password: "",
@@ -136,7 +138,7 @@ const TenantAuth = () => {
               <div className="flex items-center justify-center gap-2 mt-1">
                 <span className="text-[#005EEB] font-semibold text-sm">ATLAS</span>
                 <span className="h-4 w-px bg-[#E5E7EB]" />
-                <span className="text-[#6B7280] text-xs uppercase tracking-wider">Organization Admin</span>
+                <span className="text-[#6B7280] text-xs uppercase tracking-wider">Owner / Super Admin</span>
               </div>
             </div>
           </Link>
@@ -152,10 +154,10 @@ const TenantAuth = () => {
               <Building2 className="w-7 h-7 text-[#005EEB]" />
             </div>
             <h1 className="text-2xl font-bold text-[#0F1E3A] mb-2">
-              Organization Admin Console
+              Owner / Super Admin Console
             </h1>
             <p className="text-[#6B7280] text-sm">
-              Sign in to configure your ATLAS workspace
+              For CEO, Director, VP or Company Owner only
             </p>
           </div>
 
@@ -192,7 +194,11 @@ const TenantAuth = () => {
             <div className="space-y-2">
               <div className="flex items-center justify-between">
                 <Label htmlFor="password" className="text-[#0F1E3A] text-sm font-medium">Password</Label>
-                <button type="button" className="text-xs text-[#005EEB] hover:text-[#0047B3] transition-colors">
+                <button 
+                  type="button" 
+                  onClick={() => setShowForgotPassword(true)}
+                  className="text-xs text-[#005EEB] hover:text-[#0047B3] transition-colors"
+                >
                   Forgot password?
                 </button>
               </div>
@@ -233,25 +239,29 @@ const TenantAuth = () => {
               )}
             </Button>
 
-            {/* Skip Button for Development */}
-            <div className="relative my-4">
-              <div className="absolute inset-0 flex items-center">
-                <span className="w-full border-t border-gray-200" />
-              </div>
-              <div className="relative flex justify-center text-xs uppercase">
-                <span className="bg-white px-2 text-[#6B7280]">Development Only</span>
-              </div>
-            </div>
-            
-            <Button 
-              type="button" 
-              variant="outline" 
-              className="w-full h-11 gap-2 border-dashed border-[#E5E7EB] text-[#6B7280] hover:text-[#005EEB] hover:border-[#005EEB] rounded-xl transition-all" 
-              onClick={handleSkipLogin}
-            >
-              <SkipForward className="h-4 w-4" />
-              Skip Login (Dev Mode)
-            </Button>
+            {/* Skip Button for Development - Only visible in dev builds */}
+            {import.meta.env.DEV && (
+              <>
+                <div className="relative my-4">
+                  <div className="absolute inset-0 flex items-center">
+                    <span className="w-full border-t border-gray-200" />
+                  </div>
+                  <div className="relative flex justify-center text-xs uppercase">
+                    <span className="bg-white px-2 text-[#6B7280]">Development Only</span>
+                  </div>
+                </div>
+                
+                <Button 
+                  type="button" 
+                  variant="outline" 
+                  className="w-full h-11 gap-2 border-dashed border-[#E5E7EB] text-[#6B7280] hover:text-[#005EEB] hover:border-[#005EEB] rounded-xl transition-all" 
+                  onClick={handleSkipLogin}
+                >
+                  <SkipForward className="h-4 w-4" />
+                  Skip Login (Dev Mode)
+                </Button>
+              </>
+            )}
           </form>
 
           <div className="mt-6 pt-6 border-t border-gray-100 space-y-3">
@@ -283,6 +293,12 @@ const TenantAuth = () => {
           </p>
         </div>
       </div>
+
+      <ForgotPasswordModal
+        isOpen={showForgotPassword}
+        onClose={() => setShowForgotPassword(false)}
+        portalType="organization"
+      />
     </div>
   );
 };

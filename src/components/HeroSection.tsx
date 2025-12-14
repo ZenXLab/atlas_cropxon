@@ -1,6 +1,9 @@
 import { Button } from "@/components/ui/button";
 import { NetworkBackground } from "./NetworkBackground";
-import { ArrowRight, Calculator } from "lucide-react";
+import { ArrowRight, Calculator, Sparkles } from "lucide-react";
+import { useNavigate } from "react-router-dom";
+import { useAuth } from "@/hooks/useAuth";
+import { useState, useEffect } from "react";
 import cropxonIcon from "@/assets/cropxon-icon.png";
 
 interface HeroSectionProps {
@@ -8,8 +11,37 @@ interface HeroSectionProps {
 }
 
 export const HeroSection = ({ onQuoteClick }: HeroSectionProps) => {
+  const navigate = useNavigate();
+  const { user } = useAuth();
+  const [displayedText, setDisplayedText] = useState("");
+  const fullText = "Workforce Operating System";
+  
+  // Typing animation effect
+  useEffect(() => {
+    let index = 0;
+    const timer = setInterval(() => {
+      if (index <= fullText.length) {
+        setDisplayedText(fullText.slice(0, index));
+        index++;
+      } else {
+        clearInterval(timer);
+      }
+    }, 60);
+    return () => clearInterval(timer);
+  }, []);
+
   const scrollToSolutions = () => {
     document.getElementById("pillars")?.scrollIntoView({ behavior: "smooth" });
+  };
+
+  const handleStartFreeTrial = () => {
+    if (user) {
+      // If logged in, redirect to portal
+      navigate("/portal");
+    } else {
+      // If not logged in, redirect to onboarding
+      navigate("/onboarding");
+    }
   };
 
   return (
@@ -22,45 +54,87 @@ export const HeroSection = ({ onQuoteClick }: HeroSectionProps) => {
 
       <div className="container mx-auto px-4 lg:px-8 relative z-10">
         <div className="max-w-5xl mx-auto text-center">
-          {/* Logo Icon */}
-          <div className="flex justify-center mb-8 animate-fade-in-up">
-            <div className="relative">
-              <div className="absolute inset-0 blur-3xl bg-primary/20 rounded-full animate-pulse-glow" />
-              <img 
-                src={cropxonIcon} 
-                alt="CropXon" 
-                className="relative h-28 w-28 object-contain animate-float"
-              />
+          {/* Animated ATLAS Logo & Name */}
+          <div className="flex flex-col items-center justify-center mb-10 animate-fade-in-up">
+            <div className="relative group">
+              {/* Outer glow ring */}
+              <div className="absolute inset-0 rounded-full bg-gradient-to-r from-primary via-accent to-primary opacity-20 blur-2xl animate-pulse-glow scale-150" />
+              
+              {/* Spinning ring */}
+              <div className="absolute inset-[-12px] rounded-full border-2 border-dashed border-primary/30 animate-[spin_20s_linear_infinite]" />
+              <div className="absolute inset-[-24px] rounded-full border border-accent/20 animate-[spin_30s_linear_infinite_reverse]" />
+              
+              {/* Logo container with spin animation on hover */}
+              <div className="relative w-28 h-28 sm:w-32 sm:h-32 flex items-center justify-center">
+                <div className="absolute inset-0 rounded-full bg-gradient-to-br from-primary/20 to-accent/20 animate-[spin_8s_ease-in-out_infinite]" />
+                <img 
+                  src={cropxonIcon} 
+                  alt="ATLAS" 
+                  className="relative h-20 w-20 sm:h-24 sm:w-24 object-contain animate-float drop-shadow-2xl z-10 group-hover:scale-110 transition-transform duration-500"
+                />
+              </div>
+
+              {/* Orbiting dots */}
+              <div className="absolute inset-0 animate-[spin_10s_linear_infinite]">
+                <div className="absolute top-0 left-1/2 -translate-x-1/2 -translate-y-2 w-2 h-2 rounded-full bg-primary shadow-lg shadow-primary/50" />
+              </div>
+              <div className="absolute inset-0 animate-[spin_15s_linear_infinite_reverse]">
+                <div className="absolute bottom-0 left-1/2 -translate-x-1/2 translate-y-2 w-1.5 h-1.5 rounded-full bg-accent shadow-lg shadow-accent/50" />
+              </div>
+            </div>
+
+            {/* Animated ATLAS Text */}
+            <div className="mt-8 relative">
+              {/* ATLAS Name with Glow */}
+              <div className="relative inline-block">
+                {/* Background glow */}
+                <div className="absolute inset-0 blur-2xl bg-gradient-to-r from-primary/30 via-accent/30 to-primary/30 animate-pulse" />
+                
+                {/* Main ATLAS text */}
+                <h2 className="relative text-6xl sm:text-7xl md:text-8xl lg:text-9xl font-heading font-black tracking-tight">
+                  <span className="bg-gradient-to-r from-primary via-accent to-primary bg-clip-text text-transparent bg-[length:200%_auto] animate-shimmer">
+                    ATLAS
+                  </span>
+                </h2>
+              </div>
+              
+              {/* Subtitle with Typing Animation */}
+              <div className="mt-4 h-8 flex items-center justify-center">
+                <p className="text-base sm:text-lg md:text-xl text-muted-foreground font-medium tracking-[0.25em] uppercase">
+                  {displayedText}
+                  <span className="inline-block w-0.5 h-5 bg-primary ml-1 animate-pulse" />
+                </p>
+              </div>
             </div>
           </div>
 
           {/* Main Headline */}
-          <h1 className="text-4xl sm:text-5xl md:text-6xl lg:text-7xl font-heading font-extrabold tracking-tight mb-6 animate-fade-in-up">
-            <span className="text-foreground">ATLAS</span>
-            <span className="block text-xl sm:text-2xl md:text-3xl lg:text-4xl mt-3 font-semibold text-gradient">
-              Consulting & Digital Transformation
+          <h1 className="text-3xl sm:text-4xl md:text-5xl lg:text-6xl font-heading font-extrabold tracking-tight mb-6 animate-fade-in-up animation-delay-200">
+            <span className="text-gradient">From Hire to Retire</span>
+            <span className="block text-lg sm:text-xl md:text-2xl lg:text-3xl mt-3 font-medium text-foreground/90">
+              And Everything in Between
             </span>
           </h1>
 
           {/* Subheadline */}
-          <p className="text-lg sm:text-xl md:text-2xl text-muted-foreground max-w-3xl mx-auto mb-10 animate-fade-in-up animation-delay-200">
-            Built for the Next Generation of Innovation.
+          <p className="text-lg sm:text-xl md:text-2xl text-muted-foreground max-w-3xl mx-auto mb-6 animate-fade-in-up animation-delay-200">
+            The AI-Powered Workforce OS that automates HR, Payroll, Compliance, Finance, Recruitment, Projects, and Operations for modern enterprises.
           </p>
 
-          {/* Tagline */}
+          {/* Company Attribution */}
           <p className="text-sm sm:text-base text-foreground/60 mb-12 animate-fade-in-up animation-delay-400">
             A Division of <span className="text-accent font-semibold">CropXon Innovations Pvt. Ltd.</span>
           </p>
 
           {/* CTA Buttons */}
           <div className="flex flex-col sm:flex-row items-center justify-center gap-4 animate-fade-in-up animation-delay-600">
-            <Button variant="hero" size="xl" className="group" onClick={scrollToSolutions}>
-              Explore Solutions
+            <Button variant="hero" size="xl" className="group" onClick={handleStartFreeTrial}>
+              <Sparkles className="h-5 w-5" />
+              Start Your Free Trial
               <ArrowRight className="h-5 w-5 group-hover:translate-x-1 transition-transform" />
             </Button>
-            <Button variant="hero-outline" size="xl" className="group" onClick={onQuoteClick}>
-              <Calculator className="h-5 w-5" />
-              Get a Quote
+            <Button variant="hero-outline" size="xl" className="group" onClick={scrollToSolutions}>
+              Explore Solutions
             </Button>
           </div>
 

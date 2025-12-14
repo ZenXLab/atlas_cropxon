@@ -22,18 +22,20 @@ export const AboutSection = () => {
             </span>
             
             <h2 className="text-3xl sm:text-4xl lg:text-5xl font-heading font-extrabold tracking-tight mb-6 text-foreground">
-              The Consulting Intelligence Wing of{" "}
-              <span className="text-gradient">CropXon Innovations</span>
+              One OS for Your{" "}
+              <span className="text-gradient">Entire Organization</span>
             </h2>
             
             <p className="text-base lg:text-lg text-muted-foreground mb-6 leading-relaxed">
-              ATLAS represents our commitment to enterprise excellence. We combine deep industry expertise 
-              with cutting-edge technology to deliver transformative solutions that drive real business outcomes.
+              ATLAS is an enterprise-grade, multi-tenant SaaS platform that unifies every core organizational 
+              workflow — hiring, onboarding, payroll, attendance, compliance, asset management, identity & access, 
+              background verification, performance, finance, projects, automation flows, and AI-driven insights — 
+              into one intelligent system.
             </p>
 
             <p className="text-sm lg:text-base text-muted-foreground mb-8 leading-relaxed">
-              From strategy to execution, we partner with organizations to navigate digital transformation, 
-              implement AI-driven solutions, and build resilient technology foundations that scale with ambition.
+              Built with deep automation (Temporal), real-time events, secure multi-tenancy, enterprise SSO, 
+              and a modular architecture, ATLAS helps companies operate faster, smarter, and with zero manual inefficiency.
             </p>
 
             <div className={`grid sm:grid-cols-2 gap-3 stagger-children ${isVisible ? 'visible' : ''}`}>

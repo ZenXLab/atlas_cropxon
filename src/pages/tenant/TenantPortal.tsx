@@ -23,11 +23,14 @@ import TenantRiskGovernance from "./TenantRiskGovernance";
 import TenantRequests from "./TenantRequests";
 import TenantNotifications from "./TenantNotifications";
 import TenantManagedOps from "./TenantManagedOps";
+import TenantEmployees from "./TenantEmployees";
 import TenantIntegrations from "./settings/TenantIntegrations";
 import TenantAPIKeys from "./settings/TenantAPIKeys";
 import TenantBilling from "./settings/TenantBilling";
 import TenantDataExport from "./settings/TenantDataExport";
 import TenantCustomDomain from "./settings/TenantCustomDomain";
+import TenantWidgetAccess from "./settings/TenantWidgetAccess";
+import TenantSidebarAccess from "./settings/TenantSidebarAccess";
 
 // Placeholder for remaining pages
 const PlaceholderPage: React.FC<{ title: string; description: string }> = ({ title, description }) => (
@@ -73,6 +76,7 @@ const TenantPortal: React.FC = () => {
         
         {/* Workforce Management */}
         <Route path="workforce" element={<TenantWorkforce />} />
+        <Route path="employees" element={<TenantEmployees />} />
         <Route path="attendance" element={<TenantAttendance />} />
         <Route path="documents" element={<TenantDocuments />} />
         <Route path="announcements" element={<TenantAnnouncements />} />
@@ -110,6 +114,8 @@ const TenantPortal: React.FC = () => {
         <Route path="settings/billing" element={<TenantBilling />} />
         <Route path="settings/export" element={<TenantDataExport />} />
         <Route path="settings/domain" element={<TenantCustomDomain />} />
+        <Route path="settings/widgets" element={<TenantWidgetAccess />} />
+        <Route path="settings/sidebar" element={<TenantSidebarAccess />} />
         
         <Route path="onboarding" element={<PlaceholderPage title="Onboarding" description="Complete your organization setup" />} />
         <Route path="*" element={<PlaceholderPage title="Page Not Found" description="The page you're looking for doesn't exist" />} />

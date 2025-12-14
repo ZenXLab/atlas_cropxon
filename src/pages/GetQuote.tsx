@@ -12,6 +12,7 @@ import { toast } from 'sonner';
 import { Header } from '@/components/Header';
 import { Footer } from '@/components/Footer';
 import { industryCategories } from '@/lib/industryTypes';
+import { useFormFieldAnalytics } from '@/hooks/useFormFieldAnalytics';
 import { Check, Star, Zap, Shield, ArrowRight, Calculator, Building2, Users, Briefcase, Crown } from 'lucide-react';
 
 interface ServicePricing {
@@ -53,6 +54,9 @@ const GetQuote = () => {
   const [step, setStep] = useState(1);
   const [loading, setLoading] = useState(true);
   
+  // Form field analytics
+  const formAnalytics = useFormFieldAnalytics('get-quote-form', 'Get Quote Form');
+  
   // Data from database
   const [services, setServices] = useState<ServicePricing[]>([]);
   const [addons, setAddons] = useState<Addon[]>([]);
@@ -75,29 +79,44 @@ const GetQuote = () => {
     company: '',
   });
 
+  // Track form submission
+  const handleFormSubmit = () => {
+    formAnalytics.trackFormSubmit();
+  };
+
   useEffect(() => {
     fetchPricingData();
   }, []);
 
   const fetchPricingData = async () => {
     try {
-      const [servicesRes, addonsRes, modifiersRes] = await Promise.all([
+      // Use Promise.allSettled to handle partial failures gracefully
+      const [servicesRes, addonsRes, modifiersRes] = await Promise.allSettled([
         supabase.from('service_pricing').select('*').eq('is_active', true),
         supabase.from('service_addons').select('*').eq('is_active', true),
         supabase.from('pricing_modifiers').select('*').eq('is_active', true),
       ]);
 
-      if (servicesRes.data) {
-        setServices(servicesRes.data.map(s => ({
+      // Process services
+      if (servicesRes.status === 'fulfilled' && servicesRes.value.data) {
+        setServices(servicesRes.value.data.map(s => ({
           ...s,
           features: Array.isArray(s.features) ? s.features : JSON.parse(s.features as string || '[]')
         })));
       }
-      if (addonsRes.data) setAddons(addonsRes.data);
-      if (modifiersRes.data) setModifiers(modifiersRes.data);
+      
+      // Process addons
+      if (addonsRes.status === 'fulfilled' && addonsRes.value.data) {
+        setAddons(addonsRes.value.data);
+      }
+      
+      // Process modifiers
+      if (modifiersRes.status === 'fulfilled' && modifiersRes.value.data) {
+        setModifiers(modifiersRes.value.data);
+      }
     } catch (error) {
       console.error('Error fetching pricing:', error);
-      toast.error('Failed to load pricing data');
+      // Don't show error toast - let the page render anyway
     } finally {
       setLoading(false);
     }
@@ -284,14 +303,23 @@ const GetQuote = () => {
         <div className="container mx-auto px-4">
           {/* Header */}
           <div className="text-center mb-12">
-            <Badge className="mb-4 bg-primary/10 text-primary border-primary/20">
-              <Calculator className="w-3 h-3 mr-1" />
-              ATLAS Quote Builder
-            </Badge>
+            <div className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-primary/10 text-primary text-sm font-medium mb-4">
+              <Calculator className="w-4 h-4" />
+              Custom Quote Builder
+            </div>
             <h1 className="text-4xl font-bold mb-4">Build Your Custom Quote</h1>
-            <p className="text-muted-foreground max-w-2xl mx-auto">
-              Compare plans, select services, and get instant pricing tailored to your business needs.
+            <p className="text-muted-foreground max-w-2xl mx-auto mb-6">
+              Configure your exact services, select add-ons, and get personalized pricing tailored to your business.
             </p>
+            <div className="max-w-xl mx-auto p-3 rounded-xl bg-muted/50 border border-border/50">
+              <p className="text-sm text-muted-foreground">
+                <strong className="text-foreground">Just browsing plans?</strong> Visit our{" "}
+                <a href="/pricing" className="text-primary hover:underline font-medium">
+                  Pricing Page
+                </a>{" "}
+                to compare standard plans and features side-by-side.
+              </p>
+            </div>
           </div>
 
           {/* Progress Steps */}

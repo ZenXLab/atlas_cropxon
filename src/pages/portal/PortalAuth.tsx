@@ -10,6 +10,7 @@ import cropxonIcon from "@/assets/cropxon-icon.png";
 import { Eye, EyeOff, Mail, Lock, ArrowLeft, Loader2, SkipForward } from "lucide-react";
 import { z } from "zod";
 import { useAuth } from "@/hooks/useAuth";
+import { ForgotPasswordModal } from "@/components/auth/ForgotPasswordModal";
 
 const loginSchema = z.object({
   email: z.string().email("Please enter a valid email address"),
@@ -19,6 +20,7 @@ const loginSchema = z.object({
 const PortalAuth = () => {
   const [loading, setLoading] = useState(false);
   const [showPassword, setShowPassword] = useState(false);
+  const [showForgotPassword, setShowForgotPassword] = useState(false);
   const [formData, setFormData] = useState({
     email: "",
     password: "",
@@ -119,10 +121,10 @@ const PortalAuth = () => {
         <div className="bg-card border border-border rounded-2xl p-8 shadow-card">
           <div className="text-center mb-8">
             <h1 className="text-2xl font-heading font-bold text-foreground mb-2">
-              Welcome Back
+              Employee Portal
             </h1>
             <p className="text-muted-foreground text-sm">
-              Sign in to access your client portal
+              For all employees, HR, managers & staff
             </p>
           </div>
 
@@ -145,7 +147,16 @@ const PortalAuth = () => {
             </div>
 
             <div className="space-y-2">
-              <Label htmlFor="password" className="text-foreground">Password</Label>
+              <div className="flex items-center justify-between">
+                <Label htmlFor="password" className="text-foreground">Password</Label>
+                <button 
+                  type="button" 
+                  onClick={() => setShowForgotPassword(true)}
+                  className="text-xs text-primary hover:underline"
+                >
+                  Forgot password?
+                </button>
+              </div>
               <div className="relative">
                 <Lock className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
                 <Input
@@ -179,25 +190,29 @@ const PortalAuth = () => {
               )}
             </Button>
 
-            {/* Skip Button for Development */}
-            <div className="relative my-4">
-              <div className="absolute inset-0 flex items-center">
-                <span className="w-full border-t border-border" />
-              </div>
-              <div className="relative flex justify-center text-xs uppercase">
-                <span className="bg-card px-2 text-muted-foreground">Development Only</span>
-              </div>
-            </div>
-            
-            <Button 
-              type="button" 
-              variant="outline" 
-              className="w-full gap-2 border-dashed" 
-              onClick={handleSkipLogin}
-            >
-              <SkipForward className="h-4 w-4" />
-              Skip Login (Dev Mode)
-            </Button>
+            {/* Skip Button for Development - Only visible in dev builds */}
+            {import.meta.env.DEV && (
+              <>
+                <div className="relative my-4">
+                  <div className="absolute inset-0 flex items-center">
+                    <span className="w-full border-t border-border" />
+                  </div>
+                  <div className="relative flex justify-center text-xs uppercase">
+                    <span className="bg-card px-2 text-muted-foreground">Development Only</span>
+                  </div>
+                </div>
+                
+                <Button 
+                  type="button" 
+                  variant="outline" 
+                  className="w-full gap-2 border-dashed" 
+                  onClick={handleSkipLogin}
+                >
+                  <SkipForward className="h-4 w-4" />
+                  Skip Login (Dev Mode)
+                </Button>
+              </>
+            )}
           </form>
 
           <div className="mt-6 text-center">
@@ -220,6 +235,12 @@ const PortalAuth = () => {
           <a href="#" className="text-primary hover:underline">Privacy Policy</a>
         </p>
       </div>
+
+      <ForgotPasswordModal
+        isOpen={showForgotPassword}
+        onClose={() => setShowForgotPassword(false)}
+        portalType="employee"
+      />
     </div>
   );
 };
